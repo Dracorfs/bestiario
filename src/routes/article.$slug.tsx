@@ -82,8 +82,8 @@ function NotFoundArticle() {
       <p>
         No existe un artículo con el identificador <code>{slug}</code>.{" "}
         <Link
-          to="/edit/$slug"
-          params={{ slug }}
+          to="/admin/new"
+          search={{ slug }}
           className="text-[--color-wiki-link-red] hover:underline"
         >
           Crear este artículo
