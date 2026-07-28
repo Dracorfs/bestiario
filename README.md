@@ -1,4 +1,4 @@
-# Archivo K.
+# Bestiario.
 
 Enciclopedia colaborativa centrada en la **política argentina**.
 
