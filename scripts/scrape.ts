@@ -1,5 +1,5 @@
 /**
- * Seed Archivo K. with a small set of Argentinian-politics articles
+ * Seed Bestiario. with a small set of Argentinian-politics articles
  * pulled from es.wikipedia.org. Content is licensed CC BY-SA 4.0;
  * we keep the source URL on each Article.
  *
@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 type SeedSpec = {
   /** es.wikipedia article title (URL-encoded form not needed) */
   wikiTitle: string;
-  /** slug used inside Archivo K. — kebab-case ascii */
+  /** slug used inside Bestiario. — kebab-case ascii */
   slug: string;
   /** override display title (else use Wikipedia title) */
   title?: string;
@@ -108,7 +108,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function fetchWithRetry(url: string, label: string, attempts = 4): Promise<Response> {
   for (let i = 0; i < attempts; i++) {
     const res = await fetch(url, {
-      headers: { "User-Agent": "ArchivoK-Seeder/0.1 (contact: archivok)" },
+      headers: { "User-Agent": "Bestiario-Seeder/0.1 (contact: bestiario)" },
     });
     if (res.ok) return res;
     if (res.status === 429 || res.status >= 500) {

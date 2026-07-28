@@ -100,7 +100,7 @@ function Infobox({ data }: { data: unknown }) {
   if (entries.length === 0) return null;
   return (
     <aside className="float-right ml-4 mb-4 w-72 border border-[--color-wiki-border] bg-[--color-wiki-sidebar] text-xs">
-      <div className="bg-[--color-archivo-accent] text-white text-center font-bold py-1">
+      <div className="bg-[--color-bestiario-accent] text-white text-center font-bold py-1">
         Ficha
       </div>
       <table className="w-full">

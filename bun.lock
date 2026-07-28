@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "archivo-k",
+      "name": "bestiario",
       "dependencies": {
         "@prisma/client": "^6.1.0",
         "@tanstack/react-router": "^1.167.0",

@@ -22,9 +22,9 @@ function HomePage() {
   const { articles, total } = Route.useLoaderData();
   return (
     <>
-      <h1>Bienvenido a Archivo K.</h1>
+      <h1>Bienvenido a Bestiario.</h1>
       <p>
-        Archivo K. es una enciclopedia colaborativa centrada en la{" "}
+        Bestiario. es una enciclopedia colaborativa centrada en la{" "}
         <strong>política argentina</strong>: presidentes, partidos,
         instituciones, hitos y conceptos. Hoy alberga{" "}
         <strong>{total}</strong> artículos.
@@ -54,7 +54,7 @@ function HomePage() {
       )}
       <h2>Sobre el proyecto</h2>
       <p>
-        Archivo K. nace como un experimento de enciclopedia temática. El
+        Bestiario. nace como un experimento de enciclopedia temática. El
         contenido inicial se importa de Wikipedia en español bajo licencia
         CC BY-SA y luego puede ser editado y enriquecido aquí.
       </p>

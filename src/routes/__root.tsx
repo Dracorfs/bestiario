@@ -13,11 +13,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Archivo K. — Enciclopedia política argentina" },
+      { title: "Bestiario. — Enciclopedia política argentina" },
       {
         name: "description",
         content:
-          "Archivo K. es una enciclopedia colaborativa centrada en la política argentina.",
+          "Bestiario. es una enciclopedia colaborativa centrada en la política argentina.",
       },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
@@ -58,7 +58,7 @@ function Header() {
       <div className="max-w-[1100px] mx-auto px-4 py-3 flex items-center gap-6">
         <Link to="/" className="flex items-baseline gap-2 no-underline">
           <span className="text-2xl font-serif font-bold tracking-tight">
-            Archivo <span className="text-[--color-archivo-accent]">K.</span>
+            Bestiario<span className="text-[--color-bestiario-accent]">.</span>
           </span>
           <span className="text-xs text-[--color-wiki-muted]">
             la enciclopedia política argentina
@@ -68,7 +68,7 @@ function Header() {
           <input
             type="search"
             name="q"
-            placeholder="Buscar en Archivo K."
+            placeholder="Buscar en Bestiario."
             className="border border-[--color-wiki-border] px-2 py-1 text-sm w-72 bg-white"
           />
           <button
@@ -132,7 +132,7 @@ function Sidebar() {
 function Footer() {
   return (
     <footer className="border-t border-[--color-wiki-border] mt-12 py-4 text-center text-xs text-[--color-wiki-muted]">
-      Archivo K. — contenido bajo licencia CC BY-SA. Datos seed importados de
+      Bestiario. — contenido bajo licencia CC BY-SA. Datos seed importados de
       Wikipedia en español.
     </footer>
   );
