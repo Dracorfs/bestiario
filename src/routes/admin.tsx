@@ -1,15 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
-import { NotAuthorized, requireAdmin } from "~/lib/admin-auth";
+import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 
-const listArticles = createServerFn({ method: "GET" }).handler(async () => {
-  return prisma.article.findMany({
-    select: { slug: true, title: true, updatedAt: true, published: true },
-    orderBy: { updatedAt: "desc" },
+const listArticles = createServerFn({ method: "GET" })
+  .middleware([adminOnly])
+  .handler(async () => {
+    return prisma.article.findMany({
+      select: { slug: true, title: true, updatedAt: true, published: true },
+      orderBy: { updatedAt: "desc" },
+    });
   });
-});
 
+// No <Outlet /> is rendered below: any sibling `src/routes/admin.*.tsx` file
+// (without the `admin_.` escape prefix) would nest under this route and its
+// component would never render. Future admin routes must use `admin_.`.
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => ({
     auth: await requireAdmin(location.href),
@@ -23,9 +28,9 @@ export const Route = createFileRoute("/admin")({
 
 function AdminIndexPage() {
   const { auth } = Route.useRouteContext();
+  const articles = Route.useLoaderData();
   if (auth.status === "unauthorized") return <NotAuthorized email={auth.email} />;
 
-  const articles = Route.useLoaderData();
   return (
     <>
       <h1>Administrar artículos</h1>

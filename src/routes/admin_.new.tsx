@@ -1,10 +1,11 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
-import { NotAuthorized, requireAdmin } from "~/lib/admin-auth";
+import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 import { ArticleForm, type ArticleFormValues } from "~/lib/article-form";
 
 const createArticle = createServerFn({ method: "POST" })
+  .middleware([adminOnly])
   .inputValidator((input: ArticleFormValues) => input)
   .handler(async ({ data }) => {
     await prisma.article.create({
@@ -13,7 +14,7 @@ const createArticle = createServerFn({ method: "POST" })
         title: data.title,
         summary: data.summary,
         contentHtml: data.contentHtml,
-        published: true,
+        published: data.published,
       },
     });
     return { ok: true };
@@ -31,16 +32,15 @@ export const Route = createFileRoute("/admin_/new")({
 
 function AdminNewPage() {
   const { auth } = Route.useRouteContext();
-  if (auth.status === "unauthorized") return <NotAuthorized email={auth.email} />;
-
   const { slug } = Route.useSearch();
   const router = useRouter();
+  if (auth.status === "unauthorized") return <NotAuthorized email={auth.email} />;
 
   return (
     <>
       <h1>Nuevo artículo</h1>
       <ArticleForm
-        initial={{ slug, title: "", summary: "", contentHtml: "" }}
+        initial={{ slug, title: "", summary: "", contentHtml: "", published: true }}
         slugEditable
         submitLabel="Crear"
         onSubmit={async (values) => {
