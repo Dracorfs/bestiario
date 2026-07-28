@@ -1,5 +1,9 @@
 import { redirect } from "@tanstack/react-router";
-import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
+import {
+  createMiddleware,
+  createServerFn,
+  createServerOnlyFn,
+} from "@tanstack/react-start";
 
 interface AdminSessionData {
   userId: string;
@@ -11,6 +15,7 @@ const getAdminSession = createServerOnlyFn(async () => {
   return useSession<AdminSessionData>({
     password: process.env.WORKOS_COOKIE_PASSWORD!,
     name: "admin_session",
+    maxAge: 60 * 60 * 24 * 7,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -19,6 +24,14 @@ const getAdminSession = createServerOnlyFn(async () => {
     },
   });
 });
+
+function isAllowedEmail(email: string): boolean {
+  const allowlist = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase());
+}
 
 export async function setAdminSession(userId: string, email: string) {
   const session = await getAdminSession();
@@ -41,15 +54,21 @@ export const checkAdminAuth = createServerFn({ method: "GET" }).handler(
     const email = session.data.email;
     if (!email) return { status: "unauthenticated" };
 
-    const allowlist = (process.env.ADMIN_EMAILS ?? "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    if (!allowlist.includes(email.toLowerCase())) {
+    if (!isAllowedEmail(email)) {
       return { status: "unauthorized", email };
     }
     return { status: "ok", email };
+  },
+);
+
+export const adminOnly = createMiddleware({ type: "function" }).server(
+  async ({ next }) => {
+    const session = await getAdminSession();
+    const email = session.data.email;
+    if (!email || !isAllowedEmail(email)) {
+      throw new Response("Forbidden", { status: 403 });
+    }
+    return next({ context: { email } });
   },
 );
 
