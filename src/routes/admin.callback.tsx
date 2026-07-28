@@ -10,8 +10,10 @@ const exchangeCode = createServerFn({ method: "GET" })
       code: data.code,
     });
     await setAdminSession(user.id, user.email);
+    const isSafeRedirect = (path: string) =>
+      path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
     const redirectTo =
-      data.state && data.state.startsWith("/") ? data.state : "/admin";
+      data.state && isSafeRedirect(data.state) ? data.state : "/admin";
     return { redirectTo };
   });
 
