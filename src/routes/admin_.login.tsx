@@ -12,7 +12,7 @@ const getGoogleAuthUrl = createServerFn({ method: "GET" })
     });
   });
 
-export const Route = createFileRoute("/admin/login")({
+export const Route = createFileRoute("/admin_/login")({
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search.redirect === "string" ? search.redirect : "/admin",
   }),

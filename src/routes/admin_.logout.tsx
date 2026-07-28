@@ -6,7 +6,7 @@ const logout = createServerFn({ method: "GET" }).handler(async () => {
   await clearAdminSession();
 });
 
-export const Route = createFileRoute("/admin/logout")({
+export const Route = createFileRoute("/admin_/logout")({
   beforeLoad: async () => {
     await logout();
     throw redirect({ to: "/admin/login", search: { redirect: "/admin" } });

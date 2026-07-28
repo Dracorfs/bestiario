@@ -17,7 +17,7 @@ const exchangeCode = createServerFn({ method: "GET" })
     return { redirectTo };
   });
 
-export const Route = createFileRoute("/admin/callback")({
+export const Route = createFileRoute("/admin_/callback")({
   validateSearch: (search: Record<string, unknown>) => ({
     code: String(search.code ?? ""),
     state: typeof search.state === "string" ? search.state : undefined,

@@ -1,13 +1,13 @@
 import { redirect } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { useSession } from "@tanstack/react-start/server";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 
 interface AdminSessionData {
   userId: string;
   email: string;
 }
 
-function getAdminSession() {
+const getAdminSession = createServerOnlyFn(async () => {
+  const { useSession } = await import("@tanstack/react-start/server");
   return useSession<AdminSessionData>({
     password: process.env.WORKOS_COOKIE_PASSWORD!,
     name: "admin_session",
@@ -18,7 +18,7 @@ function getAdminSession() {
       path: "/",
     },
   });
-}
+});
 
 export async function setAdminSession(userId: string, email: string) {
   const session = await getAdminSession();
