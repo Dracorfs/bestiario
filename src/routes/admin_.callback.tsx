@@ -9,6 +9,9 @@ const exchangeCode = createServerFn({ method: "GET" })
     const { user } = await workos.userManagement.authenticateWithCode({
       code: data.code,
     });
+    if (!user.emailVerified) {
+      throw new Error("Email no verificado");
+    }
     await setAdminSession(user.id, user.email);
     const isSafeRedirect = (path: string) =>
       path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
@@ -28,4 +31,19 @@ export const Route = createFileRoute("/admin_/callback")({
     });
     throw redirect({ href: redirectTo });
   },
+  errorComponent: CallbackError,
 });
+
+function CallbackError() {
+  return (
+    <>
+      <h1>Error al iniciar sesión</h1>
+      <p>No se pudo completar el inicio de sesión con Google.</p>
+      <p>
+        <a href="/admin/login" className="text-[--color-wiki-link] hover:underline">
+          Volver a iniciar sesión
+        </a>
+      </p>
+    </>
+  );
+}
