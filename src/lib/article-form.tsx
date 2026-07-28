@@ -5,6 +5,7 @@ export interface ArticleFormValues {
   title: string;
   summary: string;
   contentHtml: string;
+  published: boolean;
 }
 
 function slugify(title: string) {
@@ -32,7 +33,9 @@ export function ArticleForm({
   const [title, setTitle] = useState(initial.title);
   const [summary, setSummary] = useState(initial.summary);
   const [contentHtml, setContentHtml] = useState(initial.contentHtml);
+  const [published, setPublished] = useState(initial.published);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <form
@@ -40,8 +43,16 @@ export function ArticleForm({
       onSubmit={async (e) => {
         e.preventDefault();
         setSaving(true);
-        await onSubmit({ slug, title, summary, contentHtml });
-        setSaving(false);
+        setError(null);
+        try {
+          await onSubmit({ slug, title, summary, contentHtml, published });
+        } catch {
+          setError(
+            "No se pudo guardar el artículo. Puede que el slug ya exista o haya un problema de conexión. Intentá de nuevo.",
+          );
+        } finally {
+          setSaving(false);
+        }
       }}
     >
       {slugEditable && (
@@ -88,6 +99,15 @@ export function ArticleForm({
           className="block w-full border border-[--color-wiki-border] p-2 font-mono text-sm bg-white"
         />
       </label>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={published}
+          onChange={(e) => setPublished(e.target.checked)}
+        />
+        <span className="text-sm font-semibold">Publicado</span>
+      </label>
+      {error && <p className="text-red-600 text-sm">{error}</p>}
       <button
         type="submit"
         disabled={saving}
