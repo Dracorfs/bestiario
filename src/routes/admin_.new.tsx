@@ -19,7 +19,7 @@ const createArticle = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const Route = createFileRoute("/admin/new")({
+export const Route = createFileRoute("/admin_/new")({
   validateSearch: (search: Record<string, unknown>) => ({
     slug: typeof search.slug === "string" ? search.slug : "",
   }),
