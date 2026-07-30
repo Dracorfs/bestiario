@@ -13,11 +13,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Bestiario. — Enciclopedia política argentina" },
+      { title: "Bestiario. — Carpetazos argentinos" },
       {
         name: "description",
         content:
-          "Bestiario. es una enciclopedia colaborativa centrada en la política argentina.",
+          "Bestiario. la pokedex de la política argentina.",
       },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
@@ -61,7 +61,7 @@ function Header() {
             Bestiario<span className="text-[--color-bestiario-accent]">.</span>
           </span>
           <span className="text-xs text-[--color-wiki-muted]">
-            la enciclopedia política argentina
+            la pokedex de la política argentina
           </span>
         </Link>
         <form action="/search" method="get" className="ml-auto flex gap-2">
@@ -132,8 +132,7 @@ function Sidebar() {
 function Footer() {
   return (
     <footer className="border-t border-[--color-wiki-border] mt-12 py-4 text-center text-xs text-[--color-wiki-muted]">
-      Bestiario. — contenido bajo licencia CC BY-SA. Datos seed importados de
-      Wikipedia en español.
+      Bestiario. — contenido bajo licencia CC BY-SA.
     </footer>
   );
 }
