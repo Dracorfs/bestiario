@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
-import { renderWikiHtml } from "~/lib/wiki-html";
+import { renderArticleContent } from "~/lib/render-article";
 
 const getArticle = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
@@ -13,7 +13,8 @@ const getArticle = createServerFn({ method: "GET" })
       },
     });
     if (!article) return null;
-    return article;
+    const html = await renderArticleContent(article.contentHtml);
+    return { ...article, html };
   });
 
 export const Route = createFileRoute("/article/$slug")({
@@ -28,14 +29,13 @@ export const Route = createFileRoute("/article/$slug")({
 
 function ArticlePage() {
   const article = Route.useLoaderData();
-  const html = renderWikiHtml(article.contentHtml);
   return (
     <>
       <h1>{article.title}</h1>
       {article.summary && (
         <p className="text-[--color-wiki-muted] italic">{article.summary}</p>
       )}
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <div dangerouslySetInnerHTML={{ __html: article.html }} />
       <div className="mt-6 pt-3 border-t border-[--color-wiki-border] text-xs text-[--color-wiki-muted] flex flex-wrap gap-3 items-center">
         {article.categories.length > 0 && (
           <span>
