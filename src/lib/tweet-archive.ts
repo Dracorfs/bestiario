@@ -49,3 +49,67 @@ export function parseSyndicationResponse(json: unknown): ParsedTweet | null {
 
   return { authorName, authorHandle, text, photos, videoUrl };
 }
+
+import { prisma } from "~/lib/db";
+import { optimizeImage, videoToGif } from "./tweet-media";
+
+async function fetchBuffer(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`failed to fetch media (${res.status}): ${url}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+export async function archiveTweet(tweetId: string): Promise<void> {
+  const existing = await prisma.tweet.findUnique({ where: { id: tweetId } });
+  if (existing) return;
+
+  try {
+    const res = await fetch(
+      `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}`,
+    );
+    if (!res.ok) throw new Error(`syndication fetch failed (${res.status})`);
+    const parsed = parseSyndicationResponse(await res.json());
+    if (!parsed) throw new Error("unparseable syndication response");
+
+    const media: {
+      kind: string;
+      mimeType: string;
+      data: Buffer<ArrayBuffer>;
+      order: number;
+    }[] = [];
+    for (const [i, photoUrl] of parsed.photos.entries()) {
+      const raw = await fetchBuffer(photoUrl);
+      const { data, mimeType } = await optimizeImage(raw);
+      media.push({ kind: "image", mimeType, data: data as Buffer<ArrayBuffer>, order: i });
+    }
+    if (parsed.videoUrl) {
+      const raw = await fetchBuffer(parsed.videoUrl);
+      const { data, mimeType } = await videoToGif(raw);
+      media.push({
+        kind: "gif",
+        mimeType,
+        data: data as Buffer<ArrayBuffer>,
+        order: media.length,
+      });
+    }
+
+    await prisma.tweet.create({
+      data: {
+        id: tweetId,
+        authorName: parsed.authorName,
+        authorHandle: parsed.authorHandle,
+        text: parsed.text,
+        sourceUrl: `https://x.com/${parsed.authorHandle}/status/${tweetId}`,
+        media: { create: media },
+      },
+    });
+  } catch (err) {
+    console.error(`[tweet-archive] failed to archive tweet ${tweetId}:`, err);
+  }
+}
+
+export async function archiveTweetsInContent(source: string): Promise<void> {
+  for (const id of extractTweetIds(source)) {
+    await archiveTweet(id);
+  }
+}

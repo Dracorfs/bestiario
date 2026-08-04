@@ -1,5 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { extractTweetIds, parseSyndicationResponse } from "./tweet-archive";
+
+vi.mock("~/lib/db", () => ({
+  prisma: {
+    tweet: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
+  },
+}));
+vi.mock("./tweet-media", () => ({
+  optimizeImage: vi.fn(async () => ({ data: Buffer.from("img"), mimeType: "image/webp" })),
+  videoToGif: vi.fn(async () => ({ data: Buffer.from("gif"), mimeType: "image/gif" })),
+}));
 
 describe("extractTweetIds", () => {
   it("matches a bare tweet URL alone on its own line", () => {
@@ -101,5 +114,88 @@ describe("parseSyndicationResponse", () => {
       photos: ["https://pbs.twimg.com/media/xyz.jpg"],
       videoUrl: null,
     });
+  });
+});
+
+import { prisma } from "~/lib/db";
+import { optimizeImage } from "./tweet-media";
+import { archiveTweet, archiveTweetsInContent } from "./tweet-archive";
+
+const SYNDICATION_FIXTURE = {
+  text: "hello world",
+  user: { name: "Some User", screen_name: "someuser" },
+  photos: [{ url: "https://pbs.twimg.com/media/abc.jpg" }],
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("archiveTweet", () => {
+  it("skips the network entirely when already archived", async () => {
+    vi.mocked(prisma.tweet.findUnique).mockResolvedValue({ id: "1" } as never);
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    await archiveTweet("1");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(prisma.tweet.create).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("fetches, optimizes media, and stores a new tweet", async () => {
+    vi.mocked(prisma.tweet.findUnique).mockResolvedValue(null);
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("cdn.syndication.twimg.com")) {
+        return { ok: true, json: async () => SYNDICATION_FIXTURE } as Response;
+      }
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await archiveTweet("1234567890");
+
+    expect(optimizeImage).toHaveBeenCalledTimes(1);
+    expect(prisma.tweet.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: "1234567890",
+          authorName: "Some User",
+          authorHandle: "someuser",
+          text: "hello world",
+          media: { create: [expect.objectContaining({ kind: "image", order: 0 })] },
+        }),
+      }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("swallows fetch failures without throwing and without writing a row", async () => {
+    vi.mocked(prisma.tweet.findUnique).mockResolvedValue(null);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404 }) as Response),
+    );
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(archiveTweet("999")).resolves.toBeUndefined();
+
+    expect(prisma.tweet.create).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("archiveTweetsInContent", () => {
+  it("checks the cache for every tweet id found in the source, deduped", async () => {
+    vi.mocked(prisma.tweet.findUnique).mockResolvedValue({ id: "cached" } as never);
+    vi.stubGlobal("fetch", vi.fn());
+    const source = "https://x.com/a/status/1\n\nsome text\n\nhttps://x.com/b/status/2";
+
+    await archiveTweetsInContent(source);
+
+    expect(prisma.tweet.findUnique).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
   });
 });
