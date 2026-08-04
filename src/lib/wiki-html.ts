@@ -1,11 +1,17 @@
+import { marked } from "marked";
+
+marked.setOptions({ gfm: true, breaks: false });
+
 /**
- * Rewrite stored article HTML so internal `[[Slug|Label]]` style links
- * become real <a> tags pointing at /article/<slug>.
+ * Render stored article content (Markdown, with raw HTML passed through
+ * verbatim per CommonMark) and rewrite internal links so `<a data-internal="slug">`
+ * becomes a real link to /article/<slug>.
  *
- * The scraper normalizes Wikipedia internal links to <a data-internal="slug">,
- * so this just needs to swap href.
+ * Scraped Wikipedia bodies are already HTML — marked leaves embedded HTML
+ * untouched, so this also works unchanged for that legacy content.
  */
-export function renderWikiHtml(html: string): string {
+export function renderWikiHtml(source: string): string {
+  const html = marked.parse(source, { async: false });
   return html.replace(
     /<a\b([^>]*?)\sdata-internal="([^"]+)"([^>]*)>/g,
     (_m, pre, slug, post) =>

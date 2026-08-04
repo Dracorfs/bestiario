@@ -91,7 +91,7 @@ export function ArticleForm({
         />
       </label>
       <label className="block">
-        <span className="text-sm font-semibold">Contenido (HTML)</span>
+        <span className="text-sm font-semibold">Contenido (Markdown)</span>
         <textarea
           value={contentHtml}
           onChange={(e) => setContentHtml(e.target.value)}
