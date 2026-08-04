@@ -56,3 +56,25 @@ model ArticleCategory {
   @@id([articleId, categoryId])
   @@index([categoryId])
 }
+
+model Tweet {
+  id           String       @id
+  authorName   String
+  authorHandle String
+  text         String       @db.Text
+  sourceUrl    String
+  fetchedAt    DateTime     @default(now())
+  media        TweetMedia[]
+}
+
+model TweetMedia {
+  id       String @id @default(cuid())
+  tweetId  String
+  tweet    Tweet  @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  kind     String
+  mimeType String
+  data     Bytes
+  order    Int
+
+  @@index([tweetId])
+}
