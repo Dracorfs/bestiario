@@ -185,6 +185,19 @@ describe("archiveTweet", () => {
     errSpy.mockRestore();
     vi.unstubAllGlobals();
   });
+
+  it("swallows a findUnique rejection without throwing and without writing a row", async () => {
+    vi.mocked(prisma.tweet.findUnique).mockRejectedValue(new Error("db down"));
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(archiveTweet("42")).resolves.toBeUndefined();
+
+    expect(prisma.tweet.create).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
 });
 
 describe("archiveTweetsInContent", () => {

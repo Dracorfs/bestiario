@@ -60,10 +60,10 @@ async function fetchBuffer(url: string): Promise<Buffer> {
 }
 
 export async function archiveTweet(tweetId: string): Promise<void> {
-  const existing = await prisma.tweet.findUnique({ where: { id: tweetId } });
-  if (existing) return;
-
   try {
+    const existing = await prisma.tweet.findUnique({ where: { id: tweetId } });
+    if (existing) return;
+
     const res = await fetch(
       `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}`,
     );
