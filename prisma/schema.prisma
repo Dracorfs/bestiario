@@ -63,6 +63,7 @@ model Tweet {
   authorHandle String
   text         String       @db.Text
   sourceUrl    String
+  videoUrl     String?
   fetchedAt    DateTime     @default(now())
   media        TweetMedia[]
 }

@@ -28,7 +28,13 @@ export async function videoToGif(
     await writeFile(inputPath, input);
     await new Promise<void>((resolve, reject) => {
       ffmpeg(inputPath)
-        .outputOptions(["-an", "-vf", "fps=10,scale=480:-1:flags=lanczos"])
+        .outputOptions([
+          "-an",
+          "-t",
+          "4",
+          "-vf",
+          "fps=6,scale=220:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse",
+        ])
         .output(outputPath)
         .on("end", () => resolve())
         .on("error", reject)

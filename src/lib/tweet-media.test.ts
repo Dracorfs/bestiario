@@ -14,14 +14,14 @@ async function makeTestPng(width: number, height: number): Promise<Buffer> {
     .toBuffer();
 }
 
-async function makeTestMp4(): Promise<Buffer> {
+async function makeTestMp4(durationSeconds = 1): Promise<Buffer> {
   const dir = await mkdtemp(join(tmpdir(), "fixture-mp4-"));
   const outputPath = join(dir, "test.mp4");
   await new Promise<void>((resolve, reject) => {
     ffmpeg()
-      .input("testsrc=size=64x64:rate=10:duration=1")
+      .input(`testsrc=size=64x64:rate=10:duration=${durationSeconds}`)
       .inputOptions(["-f", "lavfi"])
-      .outputOptions(["-t", "1", "-pix_fmt", "yuv420p"])
+      .outputOptions(["-t", String(durationSeconds), "-pix_fmt", "yuv420p"])
       .output(outputPath)
       .on("end", () => resolve())
       .on("error", reject)
@@ -30,6 +30,14 @@ async function makeTestMp4(): Promise<Buffer> {
   const data = await readFile(outputPath);
   await rm(dir, { recursive: true, force: true });
   return data;
+}
+
+function countGifFrames(data: Buffer): number {
+  let count = 0;
+  for (let i = 0; i < data.length - 1; i++) {
+    if (data[i] === 0x21 && data[i + 1] === 0xf9) count++;
+  }
+  return count;
 }
 
 describe("optimizeImage", () => {
@@ -57,6 +65,18 @@ describe("videoToGif", () => {
     expect(mimeType).toBe("image/gif");
     expect(data.subarray(0, 3).toString("ascii")).toBe("GIF");
     const width = data.readUInt16LE(6);
-    expect(width).toBeLessThanOrEqual(480);
+    expect(width).toBeLessThanOrEqual(220);
+  });
+
+  it("caps output to ~4 seconds regardless of input length, keeping file size small", async () => {
+    // A long-running real tweet video (2m47s) previously produced a 100MB+
+    // gif with no duration cap. A 10s input here should still be trimmed to
+    // ~4s worth of frames (fps=6 => ~24 frames), not ~60.
+    const input = await makeTestMp4(10);
+    const { data } = await videoToGif(input);
+    const frameCount = countGifFrames(data);
+    expect(frameCount).toBeGreaterThan(0);
+    expect(frameCount).toBeLessThanOrEqual(30);
+    expect(data.length).toBeLessThan(1024 * 1024);
   });
 }, 30_000);

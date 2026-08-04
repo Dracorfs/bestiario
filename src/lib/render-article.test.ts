@@ -23,6 +23,7 @@ describe("buildTweetCardHtml", () => {
         authorHandle: "ada",
         text: "hello & welcome",
         sourceUrl: "https://x.com/ada/status/1",
+        videoUrl: null,
       },
       [{ kind: "image", mimeType: "image/webp", data: Buffer.from("img") }],
     );
@@ -41,6 +42,7 @@ describe("buildTweetCardHtml", () => {
         authorHandle: "ada",
         text: "hello",
         sourceUrl: maliciousUrl,
+        videoUrl: null,
       },
       [],
     );
@@ -48,6 +50,39 @@ describe("buildTweetCardHtml", () => {
     expect(html).toContain(
       'href="https://x.com/i/status/1&quot; onmouseover=&quot;alert(1)"',
     );
+  });
+
+  it("renders a live <video> with a hidden gif fallback when the tweet has a videoUrl", () => {
+    const html = buildTweetCardHtml(
+      {
+        authorName: "Ada",
+        authorHandle: "ada",
+        text: "watch this",
+        sourceUrl: "https://x.com/ada/status/1",
+        videoUrl: "https://video.twimg.com/clip.mp4",
+      },
+      [{ kind: "gif", mimeType: "image/gif", data: Buffer.from("gif") }],
+    );
+    expect(html).toContain('<video');
+    expect(html).toContain('src="https://video.twimg.com/clip.mp4"');
+    expect(html).toContain("onerror=");
+    expect(html).toContain('style="display:none"');
+    expect(html).toContain("data:image/gif;base64,");
+  });
+
+  it("renders a plain image (no <video>) when the tweet has no videoUrl", () => {
+    const html = buildTweetCardHtml(
+      {
+        authorName: "Ada",
+        authorHandle: "ada",
+        text: "just a photo",
+        sourceUrl: "https://x.com/ada/status/1",
+        videoUrl: null,
+      },
+      [{ kind: "image", mimeType: "image/webp", data: Buffer.from("img") }],
+    );
+    expect(html).not.toContain("<video");
+    expect(html).not.toContain("onerror=");
   });
 });
 

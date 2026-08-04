@@ -103,13 +103,17 @@ async function fetchBuffer(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
+export function getSyndicationToken(tweetId: string): string {
+  return ((Number(tweetId) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, "");
+}
+
 export async function archiveTweet(tweetId: string): Promise<void> {
   try {
     const existing = await prisma.tweet.findUnique({ where: { id: tweetId } });
     if (existing) return;
 
     const res = await fetch(
-      `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}`,
+      `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&token=${getSyndicationToken(tweetId)}`,
       { signal: AbortSignal.timeout(10_000) },
     );
     if (!res.ok) throw new Error(`syndication fetch failed (${res.status})`);
@@ -145,6 +149,7 @@ export async function archiveTweet(tweetId: string): Promise<void> {
         authorHandle: parsed.authorHandle,
         text: parsed.text,
         sourceUrl: `https://x.com/${parsed.authorHandle}/status/${tweetId}`,
+        videoUrl: parsed.videoUrl,
         media: { create: media },
       },
     });

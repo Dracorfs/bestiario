@@ -28,12 +28,23 @@ function escapeHtml(s: string): string {
 }
 
 export function buildTweetCardHtml(
-  tweet: { authorName: string; authorHandle: string; text: string; sourceUrl: string },
+  tweet: {
+    authorName: string;
+    authorHandle: string;
+    text: string;
+    sourceUrl: string;
+    videoUrl: string | null;
+  },
   media: { kind: string; mimeType: string; data: Buffer }[],
 ): string {
   const mediaHtml = media
     .map((m) => {
       const src = `data:${escapeHtml(m.mimeType)};base64,${m.data.toString("base64")}`;
+      if (tweet.videoUrl && m.kind === "gif") {
+        // Prefer the live Twitter-hosted video (with audio) — only the gif
+        // is archived in our DB, so if the live URL ever dies, swap to it.
+        return `<video src="${escapeHtml(tweet.videoUrl)}" controls class="w-full rounded mt-2" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"></video><img src="${src}" alt="" class="w-full rounded mt-2" style="display:none" />`;
+      }
       return `<img src="${src}" alt="" class="w-full rounded mt-2" />`;
     })
     .join("");

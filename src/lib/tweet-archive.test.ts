@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { extractTweetIds, parseSyndicationResponse } from "./tweet-archive";
+import { extractTweetIds, getSyndicationToken, parseSyndicationResponse } from "./tweet-archive";
 
 vi.mock("~/lib/db", () => ({
   prisma: {
@@ -57,6 +57,14 @@ describe("extractTweetIds", () => {
   it("does not match a tweet URL inside a fenced code block", () => {
     const source = "```\nhttps://x.com/someuser/status/7\n```";
     expect(extractTweetIds(source)).toEqual([]);
+  });
+});
+
+describe("getSyndicationToken", () => {
+  it("computes the token the syndication endpoint requires, for a real tweet id", () => {
+    // Verified live: cdn.syndication.twimg.com/tweet-result?id=2084263129966342226
+    // returns 200 {} without a token, and a full real payload with this exact token.
+    expect(getSyndicationToken("2084263129966342226")).toBe("51vwlu2rzkm");
   });
 });
 
@@ -210,6 +218,44 @@ describe("archiveTweet", () => {
 
     expect(prisma.tweet.create).not.toHaveBeenCalled();
     errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("stores the live video URL alongside the archived gif fallback", async () => {
+    vi.mocked(prisma.tweet.findUnique).mockResolvedValue(null);
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("cdn.syndication.twimg.com")) {
+        return {
+          ok: true,
+          json: async () => ({
+            text: "watch this",
+            user: { name: "Some User", screen_name: "someuser" },
+            video: {
+              variants: [
+                { type: "video/mp4", src: "https://video.twimg.com/clip.mp4", bitrate: 900 },
+              ],
+            },
+          }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new ArrayBuffer(4),
+      } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await archiveTweet("777");
+
+    expect(prisma.tweet.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          videoUrl: "https://video.twimg.com/clip.mp4",
+          media: { create: [expect.objectContaining({ kind: "gif", order: 0 })] },
+        }),
+      }),
+    );
     vi.unstubAllGlobals();
   });
 
