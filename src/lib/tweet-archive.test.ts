@@ -48,6 +48,16 @@ describe("extractTweetIds", () => {
       "99",
     ]);
   });
+
+  it("does not match a tweet URL that isn't isolated by blank lines", () => {
+    const source = "Check this out:\nhttps://x.com/someuser/status/5\nThanks!";
+    expect(extractTweetIds(source)).toEqual([]);
+  });
+
+  it("does not match a tweet URL inside a fenced code block", () => {
+    const source = "```\nhttps://x.com/someuser/status/7\n```";
+    expect(extractTweetIds(source)).toEqual([]);
+  });
 });
 
 describe("parseSyndicationResponse", () => {

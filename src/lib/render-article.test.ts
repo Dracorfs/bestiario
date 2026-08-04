@@ -72,4 +72,21 @@ describe("renderArticleContent", () => {
 
     expect(html).toContain('href="https://x.com/i/status/999"');
   });
+
+  it("leaves a non-isolated tweet URL as plain rendered text, no leaked placeholder", async () => {
+    vi.mocked(prisma.tweet.findMany).mockResolvedValue([]);
+
+    const html = await renderArticleContent(
+      "Check this out:\nhttps://x.com/someuser/status/5\nThanks!",
+    );
+    expect(html).not.toContain("TWEET_EMBED_PLACEHOLDER");
+  });
+
+  it("leaves a tweet URL inside a fenced code block untouched", async () => {
+    vi.mocked(prisma.tweet.findMany).mockResolvedValue([]);
+
+    const html = await renderArticleContent("```\nhttps://x.com/someuser/status/7\n```");
+    expect(html).not.toContain("TWEET_EMBED_PLACEHOLDER");
+    expect(html).toContain("https://x.com/someuser/status/7");
+  });
 });

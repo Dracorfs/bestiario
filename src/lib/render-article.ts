@@ -1,5 +1,5 @@
 import { prisma } from "~/lib/db";
-import { extractTweetIds, TWEET_URL_LINE_RE } from "./tweet-archive";
+import { extractTweetIds, findIsolatedTweetUrlLines } from "./tweet-archive";
 import { renderWikiHtml } from "./wiki-html";
 
 function placeholderFor(tweetId: string): string {
@@ -7,12 +7,12 @@ function placeholderFor(tweetId: string): string {
 }
 
 function withPlaceholders(source: string): string {
+  const isolated = findIsolatedTweetUrlLines(source);
   return source
     .split("\n")
-    .map((line) => {
-      const match = TWEET_URL_LINE_RE.exec(line.trim());
-      const id = match?.[1];
-      return id ? placeholderFor(id) : line;
+    .map((line, i) => {
+      const id = isolated.get(i);
+      return id !== undefined ? placeholderFor(id) : line;
     })
     .join("\n");
 }

@@ -1,14 +1,44 @@
 export const TWEET_URL_LINE_RE =
   /^https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/\w+\/status\/(\d+)(?:\?\S*)?\/?$/;
 
-export function extractTweetIds(source: string): string[] {
-  const ids = new Set<string>();
-  for (const line of source.split("\n")) {
+function isFenceDelimiter(line: string): boolean {
+  return /^(```|~~~)/.test(line.trim());
+}
+
+/**
+ * Line-index -> tweetId, for every line that is BOTH a bare tweet URL and
+ * isolated as its own Markdown paragraph (blank line or document boundary
+ * immediately before and after), outside any fenced code block.
+ */
+export function findIsolatedTweetUrlLines(source: string): Map<number, string> {
+  const lines = source.split("\n");
+  const result = new Map<number, string>();
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    if (isFenceDelimiter(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
     const match = TWEET_URL_LINE_RE.exec(line.trim());
     const id = match?.[1];
-    if (id) ids.add(id);
+    if (!id) continue;
+
+    const prevLine = lines[i - 1];
+    const nextLine = lines[i + 1];
+    const isolatedBefore = i === 0 || prevLine === "";
+    const isolatedAfter = i === lines.length - 1 || nextLine === "";
+    if (isolatedBefore && isolatedAfter) {
+      result.set(i, id);
+    }
   }
-  return [...ids];
+  return result;
+}
+
+export function extractTweetIds(source: string): string[] {
+  return [...new Set(findIsolatedTweetUrlLines(source).values())];
 }
 
 export interface ParsedTweet {
