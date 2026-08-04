@@ -1,5 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { prisma } from "~/lib/db";
 import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 import { ArticleForm, type ArticleFormValues } from "~/lib/article-form";
@@ -44,6 +45,14 @@ const saveArticle = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const deleteArticle = createServerFn({ method: "POST" })
+  .middleware([adminOnly])
+  .inputValidator((slug: string) => slug)
+  .handler(async ({ data: slug }) => {
+    await prisma.article.delete({ where: { slug } });
+    return { ok: true };
+  });
+
 export const Route = createFileRoute("/admin_/edit/$slug")({
   beforeLoad: async ({ location }) => ({
     auth: await requireAdmin(location.href),
@@ -59,6 +68,8 @@ function AdminEditPage() {
   const { auth } = Route.useRouteContext();
   const initial = Route.useLoaderData()!;
   const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   if (auth.status === "unauthorized") return <NotAuthorized email={auth.email} />;
 
   return (
@@ -80,6 +91,28 @@ function AdminEditPage() {
           router.navigate({ to: "/article/$slug", params: { slug: values.slug } });
         }}
       />
+      <div className="mt-6 pt-3 border-t border-[--color-wiki-border]">
+        <button
+          type="button"
+          disabled={deleting}
+          className="border border-[--color-wiki-link-red] text-[--color-wiki-link-red] px-4 py-1 hover:bg-[--color-wiki-link-red] hover:text-white disabled:opacity-50"
+          onClick={async () => {
+            if (!confirm(`¿Borrar el artículo "${initial.slug}"? Esta acción no se puede deshacer.`)) return;
+            setDeleting(true);
+            setDeleteError(null);
+            try {
+              await deleteArticle({ data: initial.slug });
+              router.navigate({ to: "/admin" });
+            } catch {
+              setDeleteError("No se pudo borrar el artículo. Intentá de nuevo.");
+              setDeleting(false);
+            }
+          }}
+        >
+          {deleting ? "Borrando…" : "Borrar artículo"}
+        </button>
+        {deleteError && <p className="text-red-600 text-sm mt-2">{deleteError}</p>}
+      </div>
     </>
   );
 }
