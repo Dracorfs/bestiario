@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
 import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 import { ArticleForm, type ArticleFormValues } from "~/lib/article-form";
+import { archiveTweetsInContent } from "~/lib/tweet-archive";
 
 const createArticle = createServerFn({ method: "POST" })
   .middleware([adminOnly])
@@ -17,6 +18,7 @@ const createArticle = createServerFn({ method: "POST" })
         published: data.published,
       },
     });
+    await archiveTweetsInContent(data.contentHtml);
     return { ok: true };
   });
 
