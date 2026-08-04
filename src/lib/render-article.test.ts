@@ -32,6 +32,23 @@ describe("buildTweetCardHtml", () => {
     expect(html).toContain("data:image/webp;base64,");
     expect(html).toContain('href="https://x.com/ada/status/1"');
   });
+
+  it("escapes a double-quote in sourceUrl so it cannot break out of the href attribute", () => {
+    const maliciousUrl = 'https://x.com/i/status/1" onmouseover="alert(1)';
+    const html = buildTweetCardHtml(
+      {
+        authorName: "Ada",
+        authorHandle: "ada",
+        text: "hello",
+        sourceUrl: maliciousUrl,
+      },
+      [],
+    );
+    expect(html).not.toContain('href="https://x.com/i/status/1" onmouseover="alert(1)"');
+    expect(html).toContain(
+      'href="https://x.com/i/status/1&quot; onmouseover=&quot;alert(1)"',
+    );
+  });
 });
 
 describe("renderArticleContent", () => {
@@ -88,5 +105,19 @@ describe("renderArticleContent", () => {
     const html = await renderArticleContent("```\nhttps://x.com/someuser/status/7\n```");
     expect(html).not.toContain("TWEET_EMBED_PLACEHOLDER");
     expect(html).toContain("https://x.com/someuser/status/7");
+  });
+
+  it("degrades to plain links for every tweet instead of throwing when the DB lookup fails", async () => {
+    vi.mocked(prisma.tweet.findMany).mockRejectedValue(new Error("relation \"Tweet\" does not exist"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const html = await renderArticleContent(
+      "https://x.com/someuser/status/111\n\nhttps://x.com/other/status/222",
+    );
+
+    expect(html).not.toContain("TWEET_EMBED_PLACEHOLDER");
+    expect(html).toContain('href="https://x.com/i/status/111"');
+    expect(html).toContain('href="https://x.com/i/status/222"');
+    errSpy.mockRestore();
   });
 });

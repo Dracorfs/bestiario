@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "~/lib/db";
 import { extractTweetIds, findIsolatedTweetUrlLines } from "./tweet-archive";
 import { renderWikiHtml } from "./wiki-html";
@@ -22,7 +23,8 @@ function escapeHtml(s: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export function buildTweetCardHtml(
@@ -31,7 +33,7 @@ export function buildTweetCardHtml(
 ): string {
   const mediaHtml = media
     .map((m) => {
-      const src = `data:${m.mimeType};base64,${m.data.toString("base64")}`;
+      const src = `data:${escapeHtml(m.mimeType)};base64,${m.data.toString("base64")}`;
       return `<img src="${src}" alt="" class="w-full rounded mt-2" />`;
     })
     .join("");
@@ -39,7 +41,7 @@ export function buildTweetCardHtml(
   <p class="font-semibold">${escapeHtml(tweet.authorName)} <span class="text-[--color-wiki-muted]">@${escapeHtml(tweet.authorHandle)}</span></p>
   <p class="mt-1 whitespace-pre-wrap">${escapeHtml(tweet.text)}</p>
   ${mediaHtml}
-  <a href="${tweet.sourceUrl}" target="_blank" rel="noreferrer external" class="text-[--color-wiki-link] text-xs mt-2 inline-block">Ver en X</a>
+  <a href="${escapeHtml(tweet.sourceUrl)}" target="_blank" rel="noreferrer external" class="text-[--color-wiki-link] text-xs mt-2 inline-block">Ver en X</a>
 </blockquote>`;
 }
 
@@ -48,10 +50,15 @@ export async function renderArticleContent(source: string): Promise<string> {
   const html = renderWikiHtml(withPlaceholders(source));
   if (tweetIds.length === 0) return html;
 
-  const tweets = await prisma.tweet.findMany({
-    where: { id: { in: tweetIds } },
-    include: { media: { orderBy: { order: "asc" } } },
-  });
+  let tweets: Prisma.TweetGetPayload<{ include: { media: true } }>[] = [];
+  try {
+    tweets = await prisma.tweet.findMany({
+      where: { id: { in: tweetIds } },
+      include: { media: { orderBy: { order: "asc" } } },
+    });
+  } catch (err) {
+    console.error(`[render-article] failed to load archived tweets:`, err);
+  }
   const tweetById = new Map(tweets.map((t) => [t.id, t]));
 
   return html.replace(/<p>TWEET_EMBED_PLACEHOLDER_(\d+)<\/p>/g, (_m, id: string) => {

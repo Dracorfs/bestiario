@@ -83,9 +83,23 @@ export function parseSyndicationResponse(json: unknown): ParsedTweet | null {
 import { prisma } from "~/lib/db";
 import { optimizeImage, videoToGif } from "./tweet-media";
 
+const MAX_MEDIA_BYTES = 25 * 1024 * 1024; // 25MB
+
+function assertTwimgUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || !parsed.hostname.endsWith(".twimg.com")) {
+    throw new Error(`refusing to fetch non-twimg media URL: ${url}`);
+  }
+}
+
 async function fetchBuffer(url: string): Promise<Buffer> {
-  const res = await fetch(url);
+  assertTwimgUrl(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`failed to fetch media (${res.status}): ${url}`);
+  const contentLength = res.headers.get("content-length");
+  if (contentLength && Number(contentLength) > MAX_MEDIA_BYTES) {
+    throw new Error(`media too large (${contentLength} bytes): ${url}`);
+  }
   return Buffer.from(await res.arrayBuffer());
 }
 
@@ -96,6 +110,7 @@ export async function archiveTweet(tweetId: string): Promise<void> {
 
     const res = await fetch(
       `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}`,
+      { signal: AbortSignal.timeout(10_000) },
     );
     if (!res.ok) throw new Error(`syndication fetch failed (${res.status})`);
     const parsed = parseSyndicationResponse(await res.json());

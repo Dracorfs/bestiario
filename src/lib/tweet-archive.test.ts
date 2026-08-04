@@ -160,7 +160,11 @@ describe("archiveTweet", () => {
       if (url.includes("cdn.syndication.twimg.com")) {
         return { ok: true, json: async () => SYNDICATION_FIXTURE } as Response;
       }
-      return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) } as Response;
+      return {
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new ArrayBuffer(4),
+      } as unknown as Response;
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -204,6 +208,32 @@ describe("archiveTweet", () => {
 
     await expect(archiveTweet("42")).resolves.toBeUndefined();
 
+    expect(prisma.tweet.create).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses to fetch media from a non-twimg host and fails the archive attempt closed", async () => {
+    vi.mocked(prisma.tweet.findUnique).mockResolvedValue(null);
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("cdn.syndication.twimg.com")) {
+        return {
+          ok: true,
+          json: async () => ({
+            text: "hello world",
+            user: { name: "Some User", screen_name: "someuser" },
+            photos: [{ url: "https://evil.example.com/x.jpg" }],
+          }),
+        } as Response;
+      }
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(archiveTweet("555")).resolves.toBeUndefined();
+
+    expect(optimizeImage).not.toHaveBeenCalled();
     expect(prisma.tweet.create).not.toHaveBeenCalled();
     errSpy.mockRestore();
     vi.unstubAllGlobals();
