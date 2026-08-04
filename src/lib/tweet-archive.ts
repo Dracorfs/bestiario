@@ -5,7 +5,8 @@ export function extractTweetIds(source: string): string[] {
   const ids = new Set<string>();
   for (const line of source.split("\n")) {
     const match = TWEET_URL_LINE_RE.exec(line.trim());
-    if (match) ids.add(match[1]);
+    const id = match?.[1];
+    if (id) ids.add(id);
   }
   return [...ids];
 }
