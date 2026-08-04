@@ -87,4 +87,19 @@ describe("parseSyndicationResponse", () => {
       videoUrl: null,
     });
   });
+
+  it("handles empty text (media-only tweet with no caption)", () => {
+    const result = parseSyndicationResponse({
+      text: "",
+      user: { name: "Some User", screen_name: "someuser" },
+      photos: [{ url: "https://pbs.twimg.com/media/xyz.jpg" }],
+    });
+    expect(result).toEqual({
+      authorName: "Some User",
+      authorHandle: "someuser",
+      text: "",
+      photos: ["https://pbs.twimg.com/media/xyz.jpg"],
+      videoUrl: null,
+    });
+  });
 });

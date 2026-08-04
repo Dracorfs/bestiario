@@ -26,7 +26,7 @@ export function parseSyndicationResponse(json: unknown): ParsedTweet | null {
   const authorHandle =
     typeof user?.screen_name === "string" ? user.screen_name : null;
   const text = typeof obj.text === "string" ? obj.text : null;
-  if (!authorName || !authorHandle || !text) return null;
+  if (authorName === null || authorHandle === null || text === null) return null;
 
   const photos: string[] = [];
   if (Array.isArray(obj.photos)) {
