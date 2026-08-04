@@ -56,5 +56,7 @@ describe("videoToGif", () => {
     const { data, mimeType } = await videoToGif(input);
     expect(mimeType).toBe("image/gif");
     expect(data.subarray(0, 3).toString("ascii")).toBe("GIF");
+    const width = data.readUInt16LE(6);
+    expect(width).toBeLessThanOrEqual(480);
   });
 }, 30_000);
