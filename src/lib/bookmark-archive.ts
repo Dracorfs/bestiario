@@ -1,3 +1,4 @@
+import * as cheerio from "cheerio";
 import { lookup } from "node:dns/promises";
 import { findIsolatedUrlLines } from "./isolated-url";
 import { TWEET_URL_LINE_RE } from "./tweet-archive";
@@ -69,4 +70,36 @@ export async function assertPublicUrl(url: string): Promise<void> {
   if (isPrivateIp(address)) {
     throw new Error(`refusing to fetch private/internal address: ${address}`);
   }
+}
+
+export interface ParsedBookmark {
+  title: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  faviconUrl: string | null;
+}
+
+function resolveUrl(maybeRelative: string, base: string): string | null {
+  try {
+    return new URL(maybeRelative, base).toString();
+  } catch {
+    return null;
+  }
+}
+
+export function parseBookmarkMetadata(html: string, pageUrl: string): ParsedBookmark {
+  const $ = cheerio.load(html);
+  const title = $("title").first().text().trim() || null;
+  const description =
+    $('meta[name="description"]').attr("content")?.trim() ||
+    $('meta[property="og:description"]').attr("content")?.trim() ||
+    null;
+  const rawImage = $('meta[property="og:image"]').attr("content");
+  const imageUrl = rawImage ? resolveUrl(rawImage, pageUrl) : null;
+  const rawFavicon =
+    $('link[rel="icon"]').attr("href") || $('link[rel="shortcut icon"]').attr("href");
+  const faviconUrl = rawFavicon
+    ? resolveUrl(rawFavicon, pageUrl)
+    : resolveUrl("/favicon.ico", pageUrl);
+  return { title, description, imageUrl, faviconUrl };
 }

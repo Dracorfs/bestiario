@@ -103,3 +103,56 @@ describe("assertPublicUrl", () => {
     expect(lookup).not.toHaveBeenCalled();
   });
 });
+
+import { parseBookmarkMetadata } from "./bookmark-archive";
+
+describe("parseBookmarkMetadata", () => {
+  it("parses full metadata", () => {
+    const html = `<html><head>
+      <title>Example Title</title>
+      <meta name="description" content="Example description">
+      <meta property="og:image" content="https://example.com/image.png">
+      <link rel="icon" href="/favicon.png">
+    </head></html>`;
+    expect(parseBookmarkMetadata(html, "https://example.com/page")).toEqual({
+      title: "Example Title",
+      description: "Example description",
+      imageUrl: "https://example.com/image.png",
+      faviconUrl: "https://example.com/favicon.png",
+    });
+  });
+
+  it("falls back to og:description when a plain meta description is missing", () => {
+    const html = `<html><head><title>T</title><meta property="og:description" content="OG desc"></head></html>`;
+    expect(parseBookmarkMetadata(html, "https://example.com/").description).toBe("OG desc");
+  });
+
+  it("resolves a relative image URL against the page URL", () => {
+    const html = `<html><head><title>T</title><meta property="og:image" content="/img.png"></head></html>`;
+    expect(parseBookmarkMetadata(html, "https://example.com/blog/post").imageUrl).toBe(
+      "https://example.com/img.png",
+    );
+  });
+
+  it("falls back to /favicon.ico when no icon link is present", () => {
+    const html = `<html><head><title>T</title></head></html>`;
+    expect(parseBookmarkMetadata(html, "https://example.com/page").faviconUrl).toBe(
+      "https://example.com/favicon.ico",
+    );
+  });
+
+  it("returns null title/description/image when totally absent", () => {
+    const html = `<html><head></head><body></body></html>`;
+    const result = parseBookmarkMetadata(html, "https://example.com/");
+    expect(result.title).toBeNull();
+    expect(result.description).toBeNull();
+    expect(result.imageUrl).toBeNull();
+  });
+
+  it("falls back to shortcut icon when rel=icon is absent", () => {
+    const html = `<html><head><title>T</title><link rel="shortcut icon" href="/s.ico"></head></html>`;
+    expect(parseBookmarkMetadata(html, "https://example.com/").faviconUrl).toBe(
+      "https://example.com/s.ico",
+    );
+  });
+});
