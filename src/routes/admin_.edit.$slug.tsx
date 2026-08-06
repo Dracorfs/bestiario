@@ -55,9 +55,21 @@ const saveArticle = createServerFn({ method: "POST" })
     let pictureMimeType: string | null = null;
     if (data.pictureBase64) {
       const { data: raw } = dataUrlToBuffer(data.pictureBase64);
-      const optimized = await optimizeImage(raw);
-      pictureData = optimized.data as Buffer<ArrayBuffer>;
-      pictureMimeType = optimized.mimeType;
+      const existing = await prisma.article.findUnique({
+        where: { slug: data.slug },
+        select: { pictureData: true, pictureMimeType: true },
+      });
+      if (existing?.pictureData && Buffer.from(existing.pictureData).equals(raw)) {
+        // Submitted bytes are byte-identical to what's already stored (the
+        // form resubmits the unchanged picture on every save) — skip
+        // re-optimization to avoid cumulative quality loss from re-encoding.
+        pictureData = Buffer.from(existing.pictureData) as Buffer<ArrayBuffer>;
+        pictureMimeType = existing.pictureMimeType;
+      } else {
+        const optimized = await optimizeImage(raw);
+        pictureData = optimized.data as Buffer<ArrayBuffer>;
+        pictureMimeType = optimized.mimeType;
+      }
     }
     await prisma.article.upsert({
       where: { slug: data.slug },

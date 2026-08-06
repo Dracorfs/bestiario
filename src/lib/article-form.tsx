@@ -110,6 +110,11 @@ export function ArticleForm({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file) return;
+              if (file.size > 10 * 1024 * 1024) {
+                setError("La imagen es demasiado grande (máximo 10 MB).");
+                e.target.value = "";
+                return;
+              }
               const reader = new FileReader();
               reader.onload = () => {
                 setPictureBase64(reader.result as string);

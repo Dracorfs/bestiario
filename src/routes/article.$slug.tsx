@@ -19,7 +19,13 @@ const getArticle = createServerFn({ method: "GET" })
       article.pictureData && article.pictureMimeType
         ? bufferToDataUrl(Buffer.from(article.pictureData), article.pictureMimeType)
         : null;
-    return { ...article, html, pictureDataUrl };
+    // Never spread the raw pictureData bytes into the loader's return value:
+    // Prisma's small Bytes values are Buffers carved out of Node's shared
+    // Buffer pool, so serializing the raw Uint8Array leaks unrelated process
+    // memory to the client. Only pictureDataUrl (already-converted, safe)
+    // should reach the browser.
+    const { pictureData: _pictureData, ...rest } = article;
+    return { ...rest, html, pictureDataUrl };
   });
 
 export const Route = createFileRoute("/article/$slug")({
