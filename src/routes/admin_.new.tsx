@@ -5,6 +5,7 @@ import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 import { ArticleForm, type ArticleFormValues } from "~/lib/article-form";
 import { dataUrlToBuffer } from "~/lib/data-url";
 import { archiveTweetsInContent } from "~/lib/tweet-archive";
+import { archiveBookmarksInContent } from "~/lib/bookmark-archive";
 import { optimizeImage } from "~/lib/tweet-media";
 
 const createArticle = createServerFn({ method: "POST" })
@@ -31,6 +32,7 @@ const createArticle = createServerFn({ method: "POST" })
       },
     });
     await archiveTweetsInContent(data.contentHtml);
+    await archiveBookmarksInContent(data.contentHtml);
     return { ok: true };
   });
 
