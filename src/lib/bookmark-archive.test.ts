@@ -460,6 +460,102 @@ describe("archiveBookmark", () => {
   });
 });
 
+describe("fetchPublicBuffer deadline shared across redirect hops", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(lookup).mockResolvedValue({ address: "93.184.216.34", family: 4 });
+  });
+
+  it("carries the original ~10s budget across hops rather than resetting it per hop", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    const start = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, "now");
+    nowSpy
+      .mockReturnValueOnce(start) // default deadline computed on the initial (unredirected) call
+      .mockReturnValueOnce(start) // remaining budget check for hop 1
+      .mockReturnValueOnce(start + 9_000); // remaining budget check for hop 2, 9s later: 1s left, still positive
+
+    const noImageFaviconHtml = `<html><head><title>Final</title></head></html>`;
+    let pageFetchCount = 0;
+    const fetchMock = vi.fn(async (input: unknown) => {
+      const url = String(input);
+      if (url === "https://example.com/") {
+        pageFetchCount++;
+        return {
+          status: 302,
+          ok: false,
+          headers: {
+            get: (k: string) => (k.toLowerCase() === "location" ? "https://example.com/final" : null),
+          },
+        } as unknown as Response;
+      }
+      if (url === "https://example.com/final") {
+        pageFetchCount++;
+        return {
+          status: 200,
+          ok: true,
+          headers: { get: () => null },
+          arrayBuffer: async () => new TextEncoder().encode(noImageFaviconHtml).buffer as ArrayBuffer,
+        } as unknown as Response;
+      }
+      // favicon fallback fetch (/favicon.ico) — unrelated to the redirect chain under test
+      return {
+        status: 200,
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new ArrayBuffer(4),
+      } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await archiveBookmark("https://example.com/");
+
+    // both hops of the page fetch happened: the second hop was NOT rejected just because
+    // 9s had already elapsed, since only 9 of the shared 10s budget were spent.
+    expect(pageFetchCount).toBe(2);
+    expect(prisma.bookmark.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ title: "Final" }) }),
+    );
+
+    nowSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects the next hop once the shared budget is exhausted, without making another network call", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    const start = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, "now");
+    nowSpy
+      .mockReturnValueOnce(start) // default deadline computed on the initial (unredirected) call
+      .mockReturnValueOnce(start) // remaining budget check for hop 1
+      .mockReturnValueOnce(start + 10_001); // remaining budget check for hop 2: budget fully exhausted
+
+    const fetchMock = vi.fn(async () => ({
+      status: 302,
+      ok: false,
+      headers: {
+        get: (k: string) => (k.toLowerCase() === "location" ? "https://example.com/final" : null),
+      },
+    }) as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(archiveBookmark("https://example.com/")).resolves.toBeUndefined();
+
+    // the deadline check for hop 2 happens BEFORE any second fetch call is attempted
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(prisma.bookmark.create).not.toHaveBeenCalled();
+    expect(errSpy).toHaveBeenCalledWith(
+      expect.stringContaining("failed to archive bookmark"),
+      expect.objectContaining({ message: expect.stringContaining("fetch deadline exceeded") }),
+    );
+
+    nowSpy.mockRestore();
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+});
+
 describe("archiveBookmarksInContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();

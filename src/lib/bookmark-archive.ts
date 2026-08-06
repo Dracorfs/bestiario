@@ -122,16 +122,24 @@ export function parseBookmarkMetadata(html: string, pageUrl: string): ParsedBook
 
 const MAX_BOOKMARK_FETCH_BYTES = 5 * 1024 * 1024; // 5MB
 
-async function fetchPublicBuffer(url: string, redirectsRemaining = 5): Promise<Buffer> {
+async function fetchPublicBuffer(
+  url: string,
+  deadline: number = Date.now() + 10_000,
+  redirectsRemaining = 5,
+): Promise<Buffer> {
   await assertPublicUrl(url);
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000), redirect: "manual" });
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) {
+    throw new Error(`fetch deadline exceeded: ${url}`);
+  }
+  const res = await fetch(url, { signal: AbortSignal.timeout(remaining), redirect: "manual" });
   if (res.status >= 300 && res.status < 400) {
     const location = res.headers.get("location");
     if (!location || redirectsRemaining <= 0) {
       throw new Error(`redirect without usable Location header, or too many redirects: ${url}`);
     }
     const nextUrl = new URL(location, url).toString();
-    return fetchPublicBuffer(nextUrl, redirectsRemaining - 1);
+    return fetchPublicBuffer(nextUrl, deadline, redirectsRemaining - 1);
   }
   if (!res.ok) throw new Error(`failed to fetch (${res.status}): ${url}`);
   const contentLength = res.headers.get("content-length");
