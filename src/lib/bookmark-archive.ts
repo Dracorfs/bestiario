@@ -2,6 +2,8 @@ import * as cheerio from "cheerio";
 import { lookup } from "node:dns/promises";
 import { findIsolatedUrlLines } from "./isolated-url";
 import { TWEET_URL_LINE_RE } from "./tweet-archive";
+import { prisma } from "~/lib/db";
+import { optimizeImage } from "./tweet-media";
 
 const BARE_URL_RE = /^https?:\/\/\S+$/;
 
@@ -102,4 +104,73 @@ export function parseBookmarkMetadata(html: string, pageUrl: string): ParsedBook
     ? resolveUrl(rawFavicon, pageUrl)
     : resolveUrl("/favicon.ico", pageUrl);
   return { title, description, imageUrl, faviconUrl };
+}
+
+const MAX_BOOKMARK_FETCH_BYTES = 5 * 1024 * 1024; // 5MB
+
+async function fetchPublicBuffer(url: string): Promise<Buffer> {
+  await assertPublicUrl(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`failed to fetch (${res.status}): ${url}`);
+  const contentLength = res.headers.get("content-length");
+  if (contentLength && Number(contentLength) > MAX_BOOKMARK_FETCH_BYTES) {
+    throw new Error(`response too large (${contentLength} bytes): ${url}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
+
+export async function archiveBookmark(url: string): Promise<void> {
+  try {
+    const existing = await prisma.bookmark.findUnique({ where: { url } });
+    if (existing) return;
+
+    const html = (await fetchPublicBuffer(url)).toString("utf-8");
+    const parsed = parseBookmarkMetadata(html, url);
+
+    let imageData: Buffer<ArrayBuffer> | null = null;
+    let imageMimeType: string | null = null;
+    if (parsed.imageUrl) {
+      try {
+        const raw = await fetchPublicBuffer(parsed.imageUrl);
+        const optimized = await optimizeImage(raw);
+        imageData = optimized.data as Buffer<ArrayBuffer>;
+        imageMimeType = optimized.mimeType;
+      } catch (err) {
+        console.error(`[bookmark-archive] failed to fetch/optimize image for ${url}:`, err);
+      }
+    }
+
+    let faviconData: Buffer<ArrayBuffer> | null = null;
+    let faviconMimeType: string | null = null;
+    if (parsed.faviconUrl) {
+      try {
+        const raw = await fetchPublicBuffer(parsed.faviconUrl);
+        const optimized = await optimizeImage(raw);
+        faviconData = optimized.data as Buffer<ArrayBuffer>;
+        faviconMimeType = optimized.mimeType;
+      } catch (err) {
+        console.error(`[bookmark-archive] failed to fetch/optimize favicon for ${url}:`, err);
+      }
+    }
+
+    await prisma.bookmark.create({
+      data: {
+        url,
+        title: parsed.title ?? new URL(url).hostname,
+        description: parsed.description,
+        imageData,
+        imageMimeType,
+        faviconData,
+        faviconMimeType,
+      },
+    });
+  } catch (err) {
+    console.error(`[bookmark-archive] failed to archive bookmark ${url}:`, err);
+  }
+}
+
+export async function archiveBookmarksInContent(source: string): Promise<void> {
+  for (const url of extractBookmarkUrls(source)) {
+    await archiveBookmark(url);
+  }
 }

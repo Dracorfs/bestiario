@@ -1,6 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:dns/promises", () => ({ lookup: vi.fn() }));
+vi.mock("~/lib/db", () => ({
+  prisma: {
+    bookmark: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
+  },
+}));
+vi.mock("./tweet-media", () => ({
+  optimizeImage: vi.fn(async () => ({ data: Buffer.from("img"), mimeType: "image/webp" })),
+}));
 
 import { extractBookmarkUrls, findIsolatedBookmarkUrlLines } from "./bookmark-archive";
 
@@ -154,5 +165,178 @@ describe("parseBookmarkMetadata", () => {
     expect(parseBookmarkMetadata(html, "https://example.com/").faviconUrl).toBe(
       "https://example.com/s.ico",
     );
+  });
+});
+
+import { prisma } from "~/lib/db";
+import { optimizeImage } from "./tweet-media";
+import { archiveBookmark, archiveBookmarksInContent } from "./bookmark-archive";
+
+const SAMPLE_HTML = `<html><head>
+  <title>Example Page</title>
+  <meta name="description" content="An example page">
+  <meta property="og:image" content="https://example.com/image.png">
+  <link rel="icon" href="https://example.com/favicon.png">
+</head></html>`;
+
+function mockFetchSequence(responses: Array<{ ok: boolean; status?: number; text?: () => Promise<string>; arrayBuffer?: () => Promise<ArrayBuffer>; headers?: { get: (k: string) => string | null } }>) {
+  let call = 0;
+  return vi.fn(async () => {
+    const res = responses[call];
+    call++;
+    return res as Response;
+  });
+}
+
+describe("archiveBookmark", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(lookup).mockResolvedValue({ address: "93.184.216.34", family: 4 });
+  });
+
+  it("skips the network entirely when already archived", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue({ url: "https://example.com/" } as never);
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    await archiveBookmark("https://example.com/");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(prisma.bookmark.create).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("fetches the page, optimizes image and favicon, and stores a new bookmark", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    vi.stubGlobal(
+      "fetch",
+      mockFetchSequence([
+        {
+          ok: true,
+          headers: { get: () => null },
+          arrayBuffer: async () => new TextEncoder().encode(SAMPLE_HTML).buffer as ArrayBuffer,
+        },
+        {
+          ok: true,
+          headers: { get: () => null },
+          arrayBuffer: async () => new ArrayBuffer(4),
+        },
+        {
+          ok: true,
+          headers: { get: () => null },
+          arrayBuffer: async () => new ArrayBuffer(4),
+        },
+      ]),
+    );
+
+    await archiveBookmark("https://example.com/");
+
+    expect(optimizeImage).toHaveBeenCalledTimes(2);
+    expect(prisma.bookmark.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          url: "https://example.com/",
+          title: "Example Page",
+          description: "An example page",
+        }),
+      }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("archives title/description even when the image fetch fails", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === "https://example.com/") {
+        return {
+          ok: true,
+          headers: { get: () => null },
+          arrayBuffer: async () => new TextEncoder().encode(SAMPLE_HTML).buffer as ArrayBuffer,
+        } as unknown as Response;
+      }
+      return { ok: false, status: 404 } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await archiveBookmark("https://example.com/");
+
+    expect(prisma.bookmark.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: "Example Page",
+          description: "An example page",
+          imageData: null,
+          faviconData: null,
+        }),
+      }),
+    );
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("falls back to the hostname as title when the page has no <title>", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new TextEncoder().encode("<html><head></head></html>").buffer as ArrayBuffer,
+      })) as unknown as typeof fetch,
+    );
+
+    await archiveBookmark("https://example.com/no-title");
+
+    expect(prisma.bookmark.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: "example.com" }),
+      }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("swallows a page fetch failure without throwing and without writing a row", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 500 }) as Response));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(archiveBookmark("https://example.com/")).resolves.toBeUndefined();
+
+    expect(prisma.bookmark.create).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("swallows a private-IP rejection without throwing and without writing a row", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    vi.mocked(lookup).mockResolvedValue({ address: "10.0.0.5", family: 4 });
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(archiveBookmark("http://internal.example.com/")).resolves.toBeUndefined();
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(prisma.bookmark.create).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("archiveBookmarksInContent", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("checks the cache for every bookmark URL found in the source", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue({ url: "cached" } as never);
+    vi.stubGlobal("fetch", vi.fn());
+    const source = "https://example.com/a\n\nsome text\n\nhttps://example.com/b";
+
+    await archiveBookmarksInContent(source);
+
+    expect(prisma.bookmark.findUnique).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
   });
 });
