@@ -4,7 +4,9 @@ import { useState } from "react";
 import { prisma } from "~/lib/db";
 import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 import { ArticleForm, type ArticleFormValues } from "~/lib/article-form";
+import { bufferToDataUrl, dataUrlToBuffer } from "~/lib/data-url";
 import { archiveTweetsInContent } from "~/lib/tweet-archive";
+import { optimizeImage } from "~/lib/tweet-media";
 
 const loadArticle = createServerFn({ method: "GET" })
   .middleware([adminOnly])
@@ -18,15 +20,45 @@ const loadArticle = createServerFn({ method: "GET" })
         summary: true,
         contentHtml: true,
         published: true,
+        pictureData: true,
+        pictureMimeType: true,
       },
     });
-    return a ?? { slug, title: "", summary: "", contentHtml: "", published: true };
+    if (!a) {
+      return {
+        slug,
+        title: "",
+        summary: "",
+        contentHtml: "",
+        published: true,
+        pictureBase64: null,
+      };
+    }
+    return {
+      slug: a.slug,
+      title: a.title,
+      summary: a.summary,
+      contentHtml: a.contentHtml,
+      published: a.published,
+      pictureBase64:
+        a.pictureData && a.pictureMimeType
+          ? bufferToDataUrl(Buffer.from(a.pictureData), a.pictureMimeType)
+          : null,
+    };
   });
 
 const saveArticle = createServerFn({ method: "POST" })
   .middleware([adminOnly])
   .inputValidator((input: ArticleFormValues) => input)
   .handler(async ({ data }) => {
+    let pictureData: Buffer<ArrayBuffer> | null = null;
+    let pictureMimeType: string | null = null;
+    if (data.pictureBase64) {
+      const { data: raw } = dataUrlToBuffer(data.pictureBase64);
+      const optimized = await optimizeImage(raw);
+      pictureData = optimized.data as Buffer<ArrayBuffer>;
+      pictureMimeType = optimized.mimeType;
+    }
     await prisma.article.upsert({
       where: { slug: data.slug },
       create: {
@@ -35,12 +67,16 @@ const saveArticle = createServerFn({ method: "POST" })
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
+        pictureData,
+        pictureMimeType,
       },
       update: {
         title: data.title,
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
+        pictureData,
+        pictureMimeType,
       },
     });
     await archiveTweetsInContent(data.contentHtml);
@@ -85,6 +121,7 @@ function AdminEditPage() {
           summary: initial.summary ?? "",
           contentHtml: initial.contentHtml,
           published: initial.published,
+          pictureBase64: initial.pictureBase64,
         }}
         slugEditable={false}
         submitLabel="Guardar"
