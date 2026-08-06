@@ -45,19 +45,23 @@ function isPrivateIpv4(ip: string): boolean {
     inRange("192.168.0.0", 16) ||
     inRange("127.0.0.0", 8) ||
     inRange("169.254.0.0", 16) ||
-    inRange("0.0.0.0", 8)
+    inRange("0.0.0.0", 8) ||
+    inRange("100.64.0.0", 10) ||
+    inRange("224.0.0.0", 4) ||
+    inRange("240.0.0.0", 4)
   );
 }
 
 export function isPrivateIp(ip: string): boolean {
   const lower = ip.toLowerCase();
   if (lower.includes(":")) {
-    if (lower === "::1") return true;
+    if (lower === "::" || lower === "::1") return true;
     if (lower.startsWith("::ffff:")) {
       return isPrivateIpv4(lower.slice("::ffff:".length));
     }
     if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
-    if (/^fe[89ab]/.test(lower)) return true;
+    if (/^fe[89abcdef]/.test(lower)) return true;
+    if (lower.startsWith("ff")) return true;
     return false;
   }
   return isPrivateIpv4(lower);
@@ -72,6 +76,16 @@ export async function assertPublicUrl(url: string): Promise<void> {
   if (isPrivateIp(address)) {
     throw new Error(`refusing to fetch private/internal address: ${address}`);
   }
+}
+
+function isIcoFormat(buffer: Buffer): boolean {
+  return (
+    buffer.length >= 4 &&
+    buffer[0] === 0x00 &&
+    buffer[1] === 0x00 &&
+    buffer[2] === 0x01 &&
+    buffer[3] === 0x00
+  );
 }
 
 export interface ParsedBookmark {
@@ -108,9 +122,17 @@ export function parseBookmarkMetadata(html: string, pageUrl: string): ParsedBook
 
 const MAX_BOOKMARK_FETCH_BYTES = 5 * 1024 * 1024; // 5MB
 
-async function fetchPublicBuffer(url: string): Promise<Buffer> {
+async function fetchPublicBuffer(url: string, redirectsRemaining = 5): Promise<Buffer> {
   await assertPublicUrl(url);
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(url, { signal: AbortSignal.timeout(10_000), redirect: "manual" });
+  if (res.status >= 300 && res.status < 400) {
+    const location = res.headers.get("location");
+    if (!location || redirectsRemaining <= 0) {
+      throw new Error(`redirect without usable Location header, or too many redirects: ${url}`);
+    }
+    const nextUrl = new URL(location, url).toString();
+    return fetchPublicBuffer(nextUrl, redirectsRemaining - 1);
+  }
   if (!res.ok) throw new Error(`failed to fetch (${res.status}): ${url}`);
   const contentLength = res.headers.get("content-length");
   if (contentLength && Number(contentLength) > MAX_BOOKMARK_FETCH_BYTES) {
@@ -145,9 +167,14 @@ export async function archiveBookmark(url: string): Promise<void> {
     if (parsed.faviconUrl) {
       try {
         const raw = await fetchPublicBuffer(parsed.faviconUrl);
-        const optimized = await optimizeImage(raw);
-        faviconData = optimized.data as Buffer<ArrayBuffer>;
-        faviconMimeType = optimized.mimeType;
+        if (isIcoFormat(raw)) {
+          faviconData = raw as Buffer<ArrayBuffer>;
+          faviconMimeType = "image/x-icon";
+        } else {
+          const optimized = await optimizeImage(raw);
+          faviconData = optimized.data as Buffer<ArrayBuffer>;
+          faviconMimeType = optimized.mimeType;
+        }
       } catch (err) {
         console.error(`[bookmark-archive] failed to fetch/optimize favicon for ${url}:`, err);
       }
@@ -169,8 +196,11 @@ export async function archiveBookmark(url: string): Promise<void> {
   }
 }
 
+const MAX_BOOKMARKS_PER_SAVE = 20;
+
 export async function archiveBookmarksInContent(source: string): Promise<void> {
-  for (const url of extractBookmarkUrls(source)) {
+  const urls = extractBookmarkUrls(source).slice(0, MAX_BOOKMARKS_PER_SAVE);
+  for (const url of urls) {
     await archiveBookmark(url);
   }
 }

@@ -65,6 +65,11 @@ describe("findIsolatedBookmarkUrlLines / extractBookmarkUrls", () => {
     const source = "https://x.com/someuser/status/1\n\nhttps://example.com/article";
     expect(extractBookmarkUrls(source)).toEqual(["https://example.com/article"]);
   });
+
+  it("does not match a URL indented by 4 spaces (Markdown indented code block)", () => {
+    const source = "Some text\n\n    https://example.com/article\n\nMore text";
+    expect(extractBookmarkUrls(source)).toEqual([]);
+  });
 });
 
 import { lookup } from "node:dns/promises";
@@ -89,6 +94,15 @@ describe("isPrivateIp", () => {
     ["2001:4860:4860::8888", false],
     ["::ffff:10.0.0.1", true],
     ["::ffff:8.8.8.8", false],
+    ["100.64.1.1", true],
+    ["100.100.100.200", true],
+    ["100.63.255.255", false],
+    ["100.128.0.0", false],
+    ["::", true],
+    ["224.0.0.1", true],
+    ["240.0.0.1", true],
+    ["255.255.255.255", true],
+    ["fec0::1", true],
   ])("isPrivateIp(%s) === %s", (ip, expected) => {
     expect(isPrivateIp(ip)).toBe(expected);
   });
@@ -322,6 +336,128 @@ describe("archiveBookmark", () => {
     errSpy.mockRestore();
     vi.unstubAllGlobals();
   });
+
+  it("re-validates a redirect target and refuses to follow it to a private IP", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    vi.mocked(lookup).mockImplementation(async (hostname: unknown) => {
+      if (hostname === "internal.example.com") return { address: "169.254.169.254", family: 4 };
+      return { address: "93.184.216.34", family: 4 };
+    });
+    const fetchMock = vi.fn(async () => ({
+      status: 302,
+      ok: false,
+      headers: {
+        get: (k: string) => (k.toLowerCase() === "location" ? "http://internal.example.com/secret" : null),
+      },
+    }) as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(archiveBookmark("https://example.com/")).resolves.toBeUndefined();
+
+    // fetch is only ever called once: the redirect target must be rejected by
+    // assertPublicUrl BEFORE a second network request is ever made.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(prisma.bookmark.create).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("follows a redirect to a legitimate public host after re-validating it", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    vi.mocked(lookup).mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    let pageFetchCount = 0;
+    const fetchMock = vi.fn(async (input: unknown) => {
+      const url = String(input);
+      if (url === "https://example.com/") {
+        pageFetchCount++;
+        return {
+          status: 302,
+          ok: false,
+          headers: {
+            get: (k: string) => (k.toLowerCase() === "location" ? "https://example.com/final" : null),
+          },
+        } as unknown as Response;
+      }
+      if (url === "https://example.com/final") {
+        pageFetchCount++;
+        return {
+          status: 200,
+          ok: true,
+          headers: { get: () => null },
+          arrayBuffer: async () => new TextEncoder().encode(SAMPLE_HTML).buffer as ArrayBuffer,
+        } as unknown as Response;
+      }
+      return {
+        status: 200,
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new ArrayBuffer(4),
+      } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await archiveBookmark("https://example.com/");
+
+    expect(pageFetchCount).toBe(2);
+    expect(prisma.bookmark.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          url: "https://example.com/",
+          title: "Example Page",
+        }),
+      }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("stores an ICO-format favicon raw with image/x-icon mime, skipping optimizeImage", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue(null);
+    const icoBytes = new Uint8Array([0x00, 0x00, 0x01, 0x00, 0xde, 0xad, 0xbe, 0xef]);
+    const fetchMock = vi.fn(async (input: unknown) => {
+      const url = String(input);
+      if (url === "https://example.com/") {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          arrayBuffer: async () => new TextEncoder().encode(SAMPLE_HTML).buffer as ArrayBuffer,
+        } as unknown as Response;
+      }
+      if (url === "https://example.com/image.png") {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          arrayBuffer: async () => new ArrayBuffer(4),
+        } as unknown as Response;
+      }
+      if (url === "https://example.com/favicon.png") {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          arrayBuffer: async () => icoBytes.buffer,
+        } as unknown as Response;
+      }
+      return { ok: false, status: 404 } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await archiveBookmark("https://example.com/");
+
+    // only the image goes through optimizeImage; the favicon is stored raw
+    expect(optimizeImage).toHaveBeenCalledTimes(1);
+    expect(prisma.bookmark.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          faviconMimeType: "image/x-icon",
+          faviconData: Buffer.from(icoBytes),
+        }),
+      }),
+    );
+    vi.unstubAllGlobals();
+  });
 });
 
 describe("archiveBookmarksInContent", () => {
@@ -337,6 +473,18 @@ describe("archiveBookmarksInContent", () => {
     await archiveBookmarksInContent(source);
 
     expect(prisma.bookmark.findUnique).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("caps archiving at 20 bookmarks per save even when more are present in the source", async () => {
+    vi.mocked(prisma.bookmark.findUnique).mockResolvedValue({ url: "cached" } as never);
+    vi.stubGlobal("fetch", vi.fn());
+    const urls = Array.from({ length: 25 }, (_, i) => `https://example.com/${i}`);
+    const source = urls.join("\n\n");
+
+    await archiveBookmarksInContent(source);
+
+    expect(prisma.bookmark.findUnique).toHaveBeenCalledTimes(20);
     vi.unstubAllGlobals();
   });
 });

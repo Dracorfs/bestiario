@@ -22,6 +22,7 @@ export function findIsolatedUrlLines(
       continue;
     }
     if (inFence) continue;
+    if (/^( {4,}|\t)/.test(line)) continue;
 
     const matched = matchUrl(line.trim());
     if (!matched) continue;

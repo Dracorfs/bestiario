@@ -40,4 +40,14 @@ describe("findIsolatedUrlLines", () => {
       new Map([[0, "world"]]),
     );
   });
+
+  it("does not match a value indented by 4+ spaces (Markdown indented code block)", () => {
+    const source = "Some text\n\n    42\n\nMore text";
+    expect(findIsolatedUrlLines(source, matchDigits)).toEqual(new Map());
+  });
+
+  it("does not match a value indented by a tab (Markdown indented code block)", () => {
+    const source = "Some text\n\n\t42\n\nMore text";
+    expect(findIsolatedUrlLines(source, matchDigits)).toEqual(new Map());
+  });
 });
