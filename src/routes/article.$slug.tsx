@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { bufferToDataUrl } from "~/lib/data-url";
 import { prisma } from "~/lib/db";
 import { renderArticleContent } from "~/lib/render-article";
 
@@ -14,7 +15,11 @@ const getArticle = createServerFn({ method: "GET" })
     });
     if (!article) return null;
     const html = await renderArticleContent(article.contentHtml);
-    return { ...article, html };
+    const pictureDataUrl =
+      article.pictureData && article.pictureMimeType
+        ? bufferToDataUrl(Buffer.from(article.pictureData), article.pictureMimeType)
+        : null;
+    return { ...article, html, pictureDataUrl };
   });
 
 export const Route = createFileRoute("/article/$slug")({
@@ -34,6 +39,13 @@ function ArticlePage() {
       <h1>{article.title}</h1>
       {article.summary && (
         <p className="text-[--color-wiki-muted] italic">{article.summary}</p>
+      )}
+      {article.pictureDataUrl && (
+        <img
+          src={article.pictureDataUrl}
+          alt={article.title}
+          className="float-right ml-4 mb-4 w-72 border border-[--color-wiki-border]"
+        />
       )}
       <div dangerouslySetInnerHTML={{ __html: article.html }} />
       <div className="mt-6 pt-3 border-t border-[--color-wiki-border] text-xs text-[--color-wiki-muted] flex flex-wrap gap-3 items-center">
