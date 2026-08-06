@@ -5,11 +5,14 @@ vi.mock("~/lib/db", () => ({
     tweet: {
       findMany: vi.fn(),
     },
+    bookmark: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
 import { prisma } from "~/lib/db";
-import { buildTweetCardHtml, renderArticleContent } from "./render-article";
+import { buildBookmarkCardHtml, buildTweetCardHtml, renderArticleContent } from "./render-article";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -154,5 +157,110 @@ describe("renderArticleContent", () => {
     expect(html).toContain('href="https://x.com/i/status/111"');
     expect(html).toContain('href="https://x.com/i/status/222"');
     errSpy.mockRestore();
+  });
+});
+
+describe("buildBookmarkCardHtml", () => {
+  it("renders title, description, image, and favicon, all escaped, linking to the source", () => {
+    const html = buildBookmarkCardHtml({
+      url: "https://example.com/a\"b",
+      title: "Example <Title>",
+      description: "Some & description",
+      imageData: Buffer.from("img"),
+      imageMimeType: "image/webp",
+      faviconData: Buffer.from("fav"),
+      faviconMimeType: "image/webp",
+    });
+    expect(html).toContain("Example &lt;Title&gt;");
+    expect(html).toContain("Some &amp; description");
+    expect(html).toContain("data:image/webp;base64,");
+    expect(html).toContain('href="https://example.com/a&quot;b"');
+  });
+
+  it("omits the description and image blocks when absent", () => {
+    const html = buildBookmarkCardHtml({
+      url: "https://example.com/",
+      title: "Example",
+      description: null,
+      imageData: null,
+      imageMimeType: null,
+      faviconData: null,
+      faviconMimeType: null,
+    });
+    expect(html).not.toContain("text-[--color-wiki-muted] text-sm");
+    expect(html).not.toContain("w-full rounded mt-2");
+  });
+});
+
+describe("renderArticleContent — bookmarks", () => {
+  it("skips the bookmark DB lookup entirely when there are no bookmark URLs", async () => {
+    const html = await renderArticleContent("# Just markdown\n\nno links here");
+    expect(prisma.bookmark.findMany).not.toHaveBeenCalled();
+    expect(html).toContain("<h1>Just markdown</h1>");
+  });
+
+  it("substitutes an archived bookmark URL for a rendered card", async () => {
+    vi.mocked(prisma.bookmark.findMany).mockResolvedValue([
+      {
+        url: "https://example.com/article",
+        title: "Example Article",
+        description: "A description",
+        imageData: null,
+        imageMimeType: null,
+        faviconData: null,
+        faviconMimeType: null,
+        fetchedAt: new Date(),
+      },
+    ] as never);
+
+    const html = await renderArticleContent(
+      "Before\n\nhttps://example.com/article\n\nAfter",
+    );
+
+    expect(html).toContain("Example Article");
+    expect(html).toContain("A description");
+    expect(html).not.toContain("BOOKMARK_EMBED_PLACEHOLDER");
+  });
+
+  it("falls back to a plain escaped link when the bookmark was never archived", async () => {
+    vi.mocked(prisma.bookmark.findMany).mockResolvedValue([]);
+
+    const html = await renderArticleContent("https://example.com/unarchived");
+
+    expect(html).toContain('href="https://example.com/unarchived"');
+  });
+
+  it("renders a tweet and a bookmark independently in the same document", async () => {
+    vi.mocked(prisma.tweet.findMany).mockResolvedValue([
+      {
+        id: "1",
+        authorName: "Some User",
+        authorHandle: "someuser",
+        text: "hi",
+        sourceUrl: "https://x.com/someuser/status/1",
+        videoUrl: null,
+        fetchedAt: new Date(),
+        media: [],
+      },
+    ] as never);
+    vi.mocked(prisma.bookmark.findMany).mockResolvedValue([
+      {
+        url: "https://example.com/article",
+        title: "Example Article",
+        description: null,
+        imageData: null,
+        imageMimeType: null,
+        faviconData: null,
+        faviconMimeType: null,
+        fetchedAt: new Date(),
+      },
+    ] as never);
+
+    const html = await renderArticleContent(
+      "https://x.com/someuser/status/1\n\nhttps://example.com/article",
+    );
+
+    expect(html).toContain("Some User");
+    expect(html).toContain("Example Article");
   });
 });
