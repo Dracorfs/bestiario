@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export interface ArticleFormValues {
   slug: string;
@@ -38,6 +38,7 @@ export function ArticleForm({
   const [pictureBase64, setPictureBase64] = useState<string | null>(initial.pictureBase64);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pictureInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <form
@@ -92,7 +93,7 @@ export function ArticleForm({
           className="block w-full border border-[--color-wiki-border] p-1 bg-white"
         />
       </label>
-      <div className="block">
+      <label className="block">
         <span className="text-sm font-semibold">Imagen de presentación</span>
         {pictureBase64 && (
           <div className="mt-1">
@@ -103,8 +104,25 @@ export function ArticleForm({
             />
           </div>
         )}
-        <div className="mt-1 flex items-center gap-3">
+        <div className="mt-2 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => pictureInputRef.current?.click()}
+            className="border border-[--color-wiki-border] px-3 py-1 text-sm bg-[--color-wiki-sidebar] hover:bg-white"
+          >
+            {pictureBase64 ? "Cambiar imagen" : "Subir imagen"}
+          </button>
+          {pictureBase64 && (
+            <button
+              type="button"
+              onClick={() => setPictureBase64(null)}
+              className="border border-[--color-wiki-link-red] text-[--color-wiki-link-red] px-3 py-1 text-sm hover:bg-[--color-wiki-link-red] hover:text-white"
+            >
+              Quitar imagen
+            </button>
+          )}
           <input
+            ref={pictureInputRef}
             type="file"
             accept="image/*"
             onChange={(e) => {
@@ -122,19 +140,10 @@ export function ArticleForm({
               reader.readAsDataURL(file);
               e.target.value = "";
             }}
-            className="text-sm"
+            className="hidden"
           />
-          {pictureBase64 && (
-            <button
-              type="button"
-              onClick={() => setPictureBase64(null)}
-              className="text-sm text-[--color-wiki-link-red] hover:underline"
-            >
-              Quitar imagen
-            </button>
-          )}
         </div>
-      </div>
+      </label>
       <label className="block">
         <span className="text-sm font-semibold">Contenido (Markdown)</span>
         <textarea
