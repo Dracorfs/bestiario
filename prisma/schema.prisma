@@ -81,3 +81,14 @@ model TweetMedia {
 
   @@index([tweetId])
 }
+
+model Bookmark {
+  url             String   @id
+  title           String?
+  description     String?
+  imageData       Bytes?
+  imageMimeType   String?
+  faviconData     Bytes?
+  faviconMimeType String?
+  fetchedAt       DateTime @default(now())
+}
