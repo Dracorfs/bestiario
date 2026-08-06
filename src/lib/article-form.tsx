@@ -6,6 +6,7 @@ export interface ArticleFormValues {
   summary: string;
   contentHtml: string;
   published: boolean;
+  pictureBase64: string | null;
 }
 
 function slugify(title: string) {
@@ -34,6 +35,7 @@ export function ArticleForm({
   const [summary, setSummary] = useState(initial.summary);
   const [contentHtml, setContentHtml] = useState(initial.contentHtml);
   const [published, setPublished] = useState(initial.published);
+  const [pictureBase64, setPictureBase64] = useState<string | null>(initial.pictureBase64);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function ArticleForm({
         setSaving(true);
         setError(null);
         try {
-          await onSubmit({ slug, title, summary, contentHtml, published });
+          await onSubmit({ slug, title, summary, contentHtml, published, pictureBase64 });
         } catch {
           setError(
             "No se pudo guardar el artículo. Puede que el slug ya exista o haya un problema de conexión. Intentá de nuevo.",
@@ -90,6 +92,44 @@ export function ArticleForm({
           className="block w-full border border-[--color-wiki-border] p-1 bg-white"
         />
       </label>
+      <div className="block">
+        <span className="text-sm font-semibold">Imagen de presentación</span>
+        {pictureBase64 && (
+          <div className="mt-1">
+            <img
+              src={pictureBase64}
+              alt="Vista previa"
+              className="max-w-xs border border-[--color-wiki-border]"
+            />
+          </div>
+        )}
+        <div className="mt-1 flex items-center gap-3">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                setPictureBase64(reader.result as string);
+              };
+              reader.readAsDataURL(file);
+              e.target.value = "";
+            }}
+            className="text-sm"
+          />
+          {pictureBase64 && (
+            <button
+              type="button"
+              onClick={() => setPictureBase64(null)}
+              className="text-sm text-[--color-wiki-link-red] hover:underline"
+            >
+              Quitar imagen
+            </button>
+          )}
+        </div>
+      </div>
       <label className="block">
         <span className="text-sm font-semibold">Contenido (Markdown)</span>
         <textarea
