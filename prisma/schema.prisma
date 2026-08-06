@@ -16,6 +16,8 @@ model Article {
   infoboxJson Json?
   sourceUrl   String?
   published   Boolean  @default(true)
+  pictureData     Bytes?
+  pictureMimeType String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
