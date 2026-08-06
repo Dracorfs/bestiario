@@ -3,12 +3,22 @@ import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
 import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 import { ArticleForm, type ArticleFormValues } from "~/lib/article-form";
+import { dataUrlToBuffer } from "~/lib/data-url";
 import { archiveTweetsInContent } from "~/lib/tweet-archive";
+import { optimizeImage } from "~/lib/tweet-media";
 
 const createArticle = createServerFn({ method: "POST" })
   .middleware([adminOnly])
   .inputValidator((input: ArticleFormValues) => input)
   .handler(async ({ data }) => {
+    let pictureData: Buffer<ArrayBuffer> | null = null;
+    let pictureMimeType: string | null = null;
+    if (data.pictureBase64) {
+      const { data: raw } = dataUrlToBuffer(data.pictureBase64);
+      const optimized = await optimizeImage(raw);
+      pictureData = optimized.data as Buffer<ArrayBuffer>;
+      pictureMimeType = optimized.mimeType;
+    }
     await prisma.article.create({
       data: {
         slug: data.slug,
@@ -16,6 +26,8 @@ const createArticle = createServerFn({ method: "POST" })
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
+        pictureData,
+        pictureMimeType,
       },
     });
     await archiveTweetsInContent(data.contentHtml);
@@ -42,7 +54,14 @@ function AdminNewPage() {
     <>
       <h1>Nuevo artículo</h1>
       <ArticleForm
-        initial={{ slug, title: "", summary: "", contentHtml: "", published: true }}
+        initial={{
+          slug,
+          title: "",
+          summary: "",
+          contentHtml: "",
+          published: true,
+          pictureBase64: null,
+        }}
         slugEditable
         submitLabel="Crear"
         onSubmit={async (values) => {
