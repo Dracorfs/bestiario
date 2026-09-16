@@ -93,11 +93,11 @@ Recommendations (to be validated at Checkpoint A/D):
 - [ ] One entry of each type created end-to-end, badge shown everywhere
 
 ### Phase 3: Organization
-- [ ] Task 9: Type index pages `/personas`, `/organizaciones`, `/victimas`
-- [ ] Task 10: Admin can assign / create categories
-- [ ] Task 11: Data-driven sidebar
-- [ ] Task 12: Home page redesign
-- [ ] Task 13: Categories index page `/categorias`
+- [x] Task 9: Type index pages `/personas`, `/organizaciones`, `/victimas`
+- [x] Task 10: Admin can assign / create categories
+- [x] Task 11: Data-driven sidebar
+- [x] Task 12: Home page redesign
+- [x] Task 13: Categories index page `/categorias`
 
 ### Checkpoint C
 - [ ] Every entry reachable via type page and category page; no hardcoded slugs

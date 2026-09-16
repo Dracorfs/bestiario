@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ARTICLE_KINDS, kindLabel, type ArticleKind } from "~/lib/kind";
+import { categorySlug, normalizeCategoryNames } from "~/lib/categories";
 
 export interface ArticleFormValues {
   slug: string;
@@ -9,6 +10,8 @@ export interface ArticleFormValues {
   contentHtml: string;
   published: boolean;
   pictureBase64: string | null;
+  /** Category names. Unknown ones are created on save. */
+  categories: string[];
 }
 
 function slugify(title: string) {
@@ -23,11 +26,13 @@ function slugify(title: string) {
 export function ArticleForm({
   initial,
   slugEditable,
+  availableCategories,
   onSubmit,
   submitLabel,
 }: {
   initial: ArticleFormValues;
   slugEditable: boolean;
+  availableCategories: Array<{ slug: string; name: string }>;
   onSubmit: (values: ArticleFormValues) => Promise<void>;
   submitLabel: string;
 }) {
@@ -39,9 +44,26 @@ export function ArticleForm({
   const [contentHtml, setContentHtml] = useState(initial.contentHtml);
   const [published, setPublished] = useState(initial.published);
   const [pictureBase64, setPictureBase64] = useState<string | null>(initial.pictureBase64);
+  const [categories, setCategories] = useState<string[]>(initial.categories);
+  const [newCategory, setNewCategory] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pictureInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedSlugs = new Set(categories.map(categorySlug));
+  // Existing categories plus any new name typed in this session, so a name
+  // added and then unticked stays visible instead of vanishing from the list.
+  const options = normalizeCategoryNames([
+    ...availableCategories.map((c) => c.name),
+    ...categories,
+  ]);
+
+  function addNewCategory() {
+    const name = newCategory.trim();
+    if (!name || !categorySlug(name)) return;
+    setCategories((current) => normalizeCategoryNames([...current, name]));
+    setNewCategory("");
+  }
 
   return (
     <form
@@ -51,7 +73,16 @@ export function ArticleForm({
         setSaving(true);
         setError(null);
         try {
-          await onSubmit({ slug, title, kind, summary, contentHtml, published, pictureBase64 });
+          await onSubmit({
+            slug,
+            title,
+            kind,
+            summary,
+            contentHtml,
+            published,
+            pictureBase64,
+            categories,
+          });
         } catch {
           setError(
             "No se pudo guardar el artículo. Puede que el slug ya exista o haya un problema de conexión. Intentá de nuevo.",
@@ -172,6 +203,54 @@ export function ArticleForm({
           />
         </div>
       </label>
+      <fieldset className="block">
+        <legend className="text-sm font-semibold">Categorías</legend>
+        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+          {options.map((name) => (
+            <label key={categorySlug(name)} className="flex items-center gap-1 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedSlugs.has(categorySlug(name))}
+                onChange={(e) =>
+                  setCategories((current) =>
+                    e.target.checked
+                      ? normalizeCategoryNames([...current, name])
+                      : current.filter((c) => categorySlug(c) !== categorySlug(name)),
+                  )
+                }
+              />
+              {name}
+            </label>
+          ))}
+          {options.length === 0 && (
+            <span className="text-sm text-(--color-wiki-muted)">
+              Todavía no hay categorías. Creá la primera abajo.
+            </span>
+          )}
+        </div>
+        <div className="mt-2 flex gap-2">
+          <input
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter inside the form would otherwise submit the article.
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addNewCategory();
+              }
+            }}
+            placeholder="Nueva categoría"
+            className="border border-(--color-wiki-border) p-1 bg-white text-sm"
+          />
+          <button
+            type="button"
+            onClick={addNewCategory}
+            className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-(--color-wiki-sidebar) hover:bg-white"
+          >
+            Agregar
+          </button>
+        </div>
+      </fieldset>
       <label className="block">
         <span className="text-sm font-semibold">Contenido (Markdown)</span>
         <textarea

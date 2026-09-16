@@ -7,6 +7,16 @@ import { dataUrlToBuffer } from "~/lib/data-url";
 import { archiveTweetsInContent } from "~/lib/tweet-archive";
 import { archiveBookmarksInContent } from "~/lib/bookmark-archive";
 import { optimizeImage } from "~/lib/tweet-media";
+import { setArticleCategories } from "~/lib/category-sync";
+
+const listCategories = createServerFn({ method: "GET" })
+  .middleware([adminOnly])
+  .handler(async () =>
+    prisma.category.findMany({
+      select: { slug: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  );
 
 const createArticle = createServerFn({ method: "POST" })
   .middleware([adminOnly])
@@ -20,7 +30,7 @@ const createArticle = createServerFn({ method: "POST" })
       pictureData = optimized.data as Buffer<ArrayBuffer>;
       pictureMimeType = optimized.mimeType;
     }
-    await prisma.article.create({
+    const created = await prisma.article.create({
       data: {
         slug: data.slug,
         title: data.title,
@@ -31,7 +41,9 @@ const createArticle = createServerFn({ method: "POST" })
         pictureData,
         pictureMimeType,
       },
+      select: { id: true },
     });
+    await setArticleCategories(created.id, data.categories);
     await archiveTweetsInContent(data.contentHtml);
     await archiveBookmarksInContent(data.contentHtml);
     return { ok: true };
@@ -44,12 +56,17 @@ export const Route = createFileRoute("/admin_/new")({
   beforeLoad: async ({ location }) => ({
     auth: await requireAdmin(location.href),
   }),
+  loader: async ({ context }) => {
+    if (context.auth.status !== "ok") return [];
+    return listCategories();
+  },
   component: AdminNewPage,
 });
 
 function AdminNewPage() {
   const { auth } = Route.useRouteContext();
   const { slug } = Route.useSearch();
+  const availableCategories = Route.useLoaderData();
   const router = useRouter();
   if (auth.status === "unauthorized") return <NotAuthorized email={auth.email} />;
 
@@ -65,7 +82,9 @@ function AdminNewPage() {
           contentHtml: "",
           published: true,
           pictureBase64: null,
+          categories: [],
         }}
+        availableCategories={availableCategories}
         slugEditable
         submitLabel="Crear"
         onSubmit={async (values) => {

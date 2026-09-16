@@ -9,6 +9,7 @@ import { bufferToDataUrl, dataUrlToBuffer } from "~/lib/data-url";
 import { archiveTweetsInContent } from "~/lib/tweet-archive";
 import { archiveBookmarksInContent } from "~/lib/bookmark-archive";
 import { optimizeImage } from "~/lib/tweet-media";
+import { setArticleCategories } from "~/lib/category-sync";
 
 const loadArticle = createServerFn({ method: "GET" })
   .middleware([adminOnly])
@@ -25,6 +26,7 @@ const loadArticle = createServerFn({ method: "GET" })
         published: true,
         pictureData: true,
         pictureMimeType: true,
+        categories: { select: { category: { select: { name: true } } } },
       },
     });
     if (!a) {
@@ -36,6 +38,7 @@ const loadArticle = createServerFn({ method: "GET" })
         contentHtml: "",
         published: true,
         pictureBase64: null,
+        categories: [] as string[],
       };
     }
     return {
@@ -49,6 +52,7 @@ const loadArticle = createServerFn({ method: "GET" })
         a.pictureData && a.pictureMimeType
           ? bufferToDataUrl(Buffer.from(a.pictureData), a.pictureMimeType)
           : null,
+      categories: a.categories.map((c) => c.category.name),
     };
   });
 
@@ -76,7 +80,7 @@ const saveArticle = createServerFn({ method: "POST" })
         pictureMimeType = optimized.mimeType;
       }
     }
-    await prisma.article.upsert({
+    const saved = await prisma.article.upsert({
       where: { slug: data.slug },
       create: {
         slug: data.slug,
@@ -97,11 +101,22 @@ const saveArticle = createServerFn({ method: "POST" })
         pictureData,
         pictureMimeType,
       },
+      select: { id: true },
     });
+    await setArticleCategories(saved.id, data.categories);
     await archiveTweetsInContent(data.contentHtml);
     await archiveBookmarksInContent(data.contentHtml);
     return { ok: true };
   });
+
+const listCategories = createServerFn({ method: "GET" })
+  .middleware([adminOnly])
+  .handler(async () =>
+    prisma.category.findMany({
+      select: { slug: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  );
 
 const deleteArticle = createServerFn({ method: "POST" })
   .middleware([adminOnly])
@@ -117,14 +132,18 @@ export const Route = createFileRoute("/admin_/edit/$slug")({
   }),
   loader: async ({ params, context }) => {
     if (context.auth.status !== "ok") return null;
-    return loadArticle({ data: params.slug });
+    const [article, availableCategories] = await Promise.all([
+      loadArticle({ data: params.slug }),
+      listCategories(),
+    ]);
+    return { article, availableCategories };
   },
   component: AdminEditPage,
 });
 
 function AdminEditPage() {
   const { auth } = Route.useRouteContext();
-  const initial = Route.useLoaderData()!;
+  const { article: initial, availableCategories } = Route.useLoaderData()!;
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -143,7 +162,9 @@ function AdminEditPage() {
           contentHtml: initial.contentHtml,
           published: initial.published,
           pictureBase64: initial.pictureBase64,
+          categories: initial.categories,
         }}
+        availableCategories={availableCategories}
         slugEditable={false}
         submitLabel="Guardar"
         onSubmit={async (values) => {

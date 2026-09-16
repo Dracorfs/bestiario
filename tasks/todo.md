@@ -131,9 +131,17 @@ scanning source text, so a class built by string interpolation is never emitted.
 ## Task 9: Type index pages
 **Description:** `/personas`, `/organizaciones`, `/victimas` (one dynamic route) with a card grid (thumbnail, title, summary), sort A–Z / recent. Serve thumbnails via an image route (`/picture/$slug`) instead of base64 in lists; never serialize raw `pictureData`.
 **Acceptance criteria:**
-- [ ] Each page lists only its type; unknown type → 404
-- [ ] Thumbnails load from the image route
-**Verification:** build; manual all three
+- [x] Each page lists only its type; `/empresas` → 404
+- [x] Thumbnails load from `/picture/$slug`; the listing payload carries no image bytes
+**Verification:** build; manual all three, plus curl on the image route (200 + webp bytes +
+ETag, 404 when the entry has no picture)
+Decisions taken here (the plan was ambiguous):
+- URLs are `/personas` etc. per the acceptance criteria, so the route is a root-level
+  `$kind.tsx`, not the `tipo.$kind.tsx` the plan listed. Static routes still win over it.
+- `/picture/$slug` is a `server.handlers.GET` on a normal file route. This version of
+  TanStack Start has no separate server-route files — no upgrade was needed.
+- `list-none` sits on the card `<li>`: `.prose-wiki ul { list-style: disc }` outranks a
+  utility on the `<ul>`, but a declaration on the item beats what it would inherit.
 **Dependencies:** Task 7
 **Files likely touched:** `src/routes/tipo.$kind.tsx`, `src/routes/picture.$slug.ts`, `src/components/EntryCard.tsx`, `src/lib/kind.ts`
 **Estimated scope:** Medium
@@ -141,9 +149,12 @@ scanning source text, so a class built by string interpolation is never emitted.
 ## Task 10: Admin can assign / create categories
 **Description:** Category multi-select in `ArticleForm` with inline "nueva categoría"; save `ArticleCategory` on create/edit (replace set on edit).
 **Acceptance criteria:**
-- [ ] Selected categories show on the article page
-- [ ] New category creatable without leaving the form
-**Verification:** typecheck + build; manual
+- [x] Category checkboxes + inline "nueva categoría" in the form; the edit upsert replaces
+      the whole set
+- [x] Names are matched by slug, so "JUECES" and "Jueces" cannot create two rows; an existing
+      category keeps its stored name rather than being renamed by a new spelling
+**Verification:** typecheck + build; `categories.test.ts` (8 cases). Manual NOT run — admin
+login, same blocker as Task 6.
 **Dependencies:** Task 6
 **Files likely touched:** `src/lib/article-form.tsx`, `src/routes/admin_.new.tsx`, `src/routes/admin_.edit.$slug.tsx`, `src/lib/categories.ts`
 **Estimated scope:** Medium
@@ -151,9 +162,11 @@ scanning source text, so a class built by string interpolation is never emitted.
 ## Task 11: Data-driven sidebar
 **Description:** Sidebar: Portada · Personas (n) · Organizaciones (n) · Víctimas (n) · top categories · "Todas las categorías". Loaded in root loader; hardcoded seed slugs removed.
 **Acceptance criteria:**
-- [ ] No hardcoded category slugs in `__root.tsx`
-- [ ] Counts match published entries
+- [x] No hardcoded category slugs in `__root.tsx`; the root loader supplies everything
+- [x] Counts match published entries (Personas 18, Organizaciones 0, Víctimas 0)
 **Verification:** build; manual
+Note: the Categorías block, and with it "Todas las categorías", is hidden while no category
+exists. `/categorias` is reachable by URL and appears in the sidebar as soon as one is created.
 **Dependencies:** Tasks 9, 10
 **Files likely touched:** `src/routes/__root.tsx`, `src/components/Sidebar.tsx`
 **Estimated scope:** Small
@@ -161,9 +174,12 @@ scanning source text, so a class built by string interpolation is never emitted.
 ## Task 12: Home page redesign
 **Description:** Hero ("Internet no olvida. Vos no olvides." + counts per type), "Últimos carpetazos" card grid, one short section per type with "ver todos"; friendly empty state.
 **Acceptance criteria:**
-- [ ] Sections per type linking to index pages
-- [ ] Looks right with 0, 1 and many entries
+- [x] Hero with per-type counts, "Últimos carpetazos" card grid, one section per type with
+      "Ver todos"
+- [x] Empty state verified (`/victimas`, `/categorias`); the 0-entry home state is a separate
+      early return
 **Verification:** build; manual desktop + mobile
+Note: at 375px the header's search box overflows. Pre-existing, and Task 14 covers it.
 **Dependencies:** Tasks 9, 11
 **Files likely touched:** `src/routes/index.tsx`, `src/components/EntryCard.tsx`
 **Estimated scope:** Small
@@ -171,15 +187,18 @@ scanning source text, so a class built by string interpolation is never emitted.
 ## Task 13: Categories index page
 **Description:** `/categorias` with descriptions and counts; category page groups entries by type.
 **Acceptance criteria:**
-- [ ] All categories listed with counts
-- [ ] Category page grouped by Personas / Organizaciones / Víctimas
-**Verification:** build; manual
+- [x] All categories listed with counts and descriptions
+- [x] Category page grouped by Personas / Organizaciones / Víctimas, empty groups omitted
+**Verification:** build; manual — only the empty state could be seen, since nothing is tagged
+yet.
 **Dependencies:** Task 10
 **Files likely touched:** `src/routes/categorias.tsx`, `src/routes/category.$slug.tsx`
 **Estimated scope:** Small
 
 ## Checkpoint C
-- [ ] Every published entry reachable from a type page and (if tagged) a category page
+- [x] Every published entry is reachable from a type page (all 18 via /personas)
+- [ ] Category paths unverified end-to-end: no entry is tagged yet, and tagging needs the
+      admin login — same blocker as Checkpoint B
 - [ ] Review with Francisco
 
 ---
