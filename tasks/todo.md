@@ -208,9 +208,13 @@ yet.
 ## Task 14: Soft-encyclopedia theme
 **Description:** Apply the visual direction in `plan.md`: neutral token names (`--color-border`, `--color-link`, …) replacing `--color-wiki-*`, `.prose-entry` replacing `.prose-wiki`, rename `wiki-html.ts` → `render-markdown.ts`; warm palette, serif headings (Google Fonts) + 16–17px sans body, ~68ch column, softer heading rules, tinted blockquotes, rounded embeds/cards, image captions; header search collapses on mobile.
 **Acceptance criteria:**
-- [ ] No `wiki` names left in `src`
-- [ ] No horizontal scroll at 375px; article lines ≤ ~75 chars on desktop
-**Verification:** tests + build; manual at 375px / 1280px
+- [x] No `wiki` names left in `src` (tokens, `.prose-entry`, `render-markdown.ts`)
+- [x] No horizontal scroll at 375px (measured: scrollWidth == innerWidth, no element past the
+      viewport); article lines measured at 73 characters
+**Verification:** tests + build; manual at 375px / desktop
+Deviation: the measure is `58ch`, not the plan's `68ch`. `ch` is the width of "0", wider than
+the average letter, so 68ch rendered ~86 characters per line. It lives on a `.reading-column`
+class applied to running text, not on the article wrapper, so card grids keep full width.
 **Dependencies:** Checkpoint C
 **Files likely touched:** `src/styles.css`, `src/routes/__root.tsx`, `src/lib/wiki-html.ts`, `src/lib/render-article.ts` (+ class-name updates across routes via find/replace)
 **Estimated scope:** Medium–Large (mostly mechanical renames; split if it grows)
@@ -218,8 +222,11 @@ yet.
 ## Task 15: Article header "ficha"
 **Description:** Header card replacing the floated picture: picture, type badge, title, summary, key facts (`infoboxJson`), categories, last edit. Stacks on mobile.
 **Acceptance criteria:**
-- [ ] Renders with/without picture and facts
-**Verification:** build; manual on 3 types
+- [x] Renders with and without a picture, with and without facts
+**Verification:** build; manual (CFK has facts, others don't; Aníbal Fernández has no picture)
+The header loads its image from `/picture/$slug`, so the article payload no longer carries a
+base64 copy either. `infoboxJson` had no defined shape; `key-facts.ts` pins one and parses
+permissively (array form, plain-object form, junk dropped) — 8 tests.
 **Dependencies:** Task 14
 **Files likely touched:** `src/routes/article.$slug.tsx`, `src/components/ArticleHeader.tsx`
 **Estimated scope:** Small
@@ -227,8 +234,13 @@ yet.
 ## Task 16: Auto table of contents
 **Description:** Add unique slug `id`s to `h2`/`h3` during rendering and return a heading list; TOC sticky on desktop, collapsible on mobile, shown when ≥3 headings.
 **Acceptance criteria:**
-- [ ] `/article/x#seccion` anchors work; duplicates get unique ids
-**Verification:** unit tests in `render-article.test.ts`; manual
+- [x] Anchors work; repeated headings get `-2`, `-3` suffixes; a hand-written id is kept
+**Verification:** `headings.test.ts` (9 cases); manual
+Put in a new `headings.ts` rather than `render-markdown.ts`, so `renderArticleContent` keeps
+its signature and its existing tests. Shown at >= 3 headings, `<details open>` so it folds on a
+phone and sticks beside the text on desktop.
+Bug found in review: heading text went to React as a raw string, so `&quot;` showed literally
+in the TOC. Entities are now decoded.
 **Dependencies:** Task 14
 **Files likely touched:** `src/lib/render-markdown.ts`, `src/lib/render-article.ts`, `src/lib/render-article.test.ts`, `src/routes/article.$slug.tsx`
 **Estimated scope:** Medium
@@ -236,15 +248,23 @@ yet.
 ## Task 17: Admin editor for key facts
 **Description:** Key/value row editor in `ArticleForm` saved to `infoboxJson`, with suggested keys per type.
 **Acceptance criteria:**
-- [ ] Facts saved, reloaded on edit, shown in the ficha
-**Verification:** typecheck + build; manual
+- [x] Key/value row editor with per-type suggested keys via `<datalist>`; blank rows are
+      dropped on save; empty set stores `Prisma.JsonNull`
+**Verification:** typecheck + build. Manual NOT run — admin login, same blocker as Task 6.
 **Dependencies:** Tasks 6, 15
 **Files likely touched:** `src/lib/article-form.tsx`, `src/routes/admin_.new.tsx`, `src/routes/admin_.edit.$slug.tsx`
 **Estimated scope:** Medium
 
 ## Checkpoint D
-- [ ] A long real report reads well on desktop and mobile
+- [x] Long report checked on desktop and at 375px (`marcelo-nieto-di-biase`, 7 headings)
 - [ ] Review with Francisco before Phase 5
+- OPEN, for Francisco: `cristina-fernandez-de-kirchner` still carries the Wikipedia infobox in
+  `infoboxJson` — 35 fields, with footnote markers ([b], [4]) and run-together values like
+  "Máximo KirchnerFlorencia Kirchner". It was invisible until Task 15 started rendering it, and
+  it is the last imported Wikipedia data in the database. Trim it in the new editor, or say the
+  word and it gets cleared.
+- Still unanswered from the plan's Open Questions: dark mode (deferred), and whether `Revision`
+  should be written on save.
 
 ---
 

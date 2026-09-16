@@ -8,6 +8,7 @@ import { archiveTweetsInContent } from "~/lib/tweet-archive";
 import { archiveBookmarksInContent } from "~/lib/bookmark-archive";
 import { optimizeImage } from "~/lib/tweet-media";
 import { setArticleCategories } from "~/lib/category-sync";
+import { Prisma } from "@prisma/client";
 
 const listCategories = createServerFn({ method: "GET" })
   .middleware([adminOnly])
@@ -38,6 +39,12 @@ const createArticle = createServerFn({ method: "POST" })
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
+        infoboxJson:
+        data.facts.length > 0
+          ? // KeyFact[] is structurally JSON, but a named interface has no index
+            // signature, so Prisma's InputJsonValue does not accept it directly.
+            (data.facts as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         pictureData,
         pictureMimeType,
       },
@@ -83,6 +90,7 @@ function AdminNewPage() {
           published: true,
           pictureBase64: null,
           categories: [],
+          facts: [],
         }}
         availableCategories={availableCategories}
         slugEditable

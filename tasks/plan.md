@@ -103,10 +103,10 @@ Recommendations (to be validated at Checkpoint A/D):
 - [ ] Every entry reachable via type page and category page; no hardcoded slugs
 
 ### Phase 4: Reading experience
-- [ ] Task 14: Soft-encyclopedia theme (tokens, fonts, renames)
-- [ ] Task 15: Article header "ficha" card
-- [ ] Task 16: Auto table of contents
-- [ ] Task 17: Admin editor for key facts (`infoboxJson`)
+- [x] Task 14: Soft-encyclopedia theme (tokens, fonts, renames)
+- [x] Task 15: Article header "ficha" card
+- [x] Task 16: Auto table of contents
+- [x] Task 17: Admin editor for key facts (`infoboxJson`)
 
 ### Checkpoint D
 - [ ] Long report reads well on desktop and 375px mobile

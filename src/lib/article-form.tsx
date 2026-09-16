@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ARTICLE_KINDS, kindLabel, type ArticleKind } from "~/lib/kind";
 import { categorySlug, normalizeCategoryNames } from "~/lib/categories";
+import { suggestedKeys, type KeyFact } from "~/lib/key-facts";
 
 export interface ArticleFormValues {
   slug: string;
@@ -12,6 +13,8 @@ export interface ArticleFormValues {
   pictureBase64: string | null;
   /** Category names. Unknown ones are created on save. */
   categories: string[];
+  /** Key facts for the header card, stored in `infoboxJson`. */
+  facts: KeyFact[];
 }
 
 function slugify(title: string) {
@@ -46,6 +49,7 @@ export function ArticleForm({
   const [pictureBase64, setPictureBase64] = useState<string | null>(initial.pictureBase64);
   const [categories, setCategories] = useState<string[]>(initial.categories);
   const [newCategory, setNewCategory] = useState("");
+  const [facts, setFacts] = useState<KeyFact[]>(initial.facts);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pictureInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +86,8 @@ export function ArticleForm({
             published,
             pictureBase64,
             categories,
+            // Blank rows are the editor's scratch space, not data.
+            facts: facts.filter((f) => f.key.trim() && f.value.trim()),
           });
         } catch {
           setError(
@@ -203,6 +209,56 @@ export function ArticleForm({
           />
         </div>
       </label>
+      <fieldset className="block">
+        <legend className="text-sm font-semibold">Datos clave</legend>
+        <datalist id="fact-key-suggestions">
+          {suggestedKeys(kind).map((k) => (
+            <option key={k} value={k} />
+          ))}
+        </datalist>
+        <div className="mt-1 space-y-2">
+          {facts.map((fact, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                value={fact.key}
+                list="fact-key-suggestions"
+                placeholder="Campo"
+                onChange={(e) =>
+                  setFacts((rows) =>
+                    rows.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)),
+                  )
+                }
+                className="w-40 border border-(--color-border) p-1 bg-(--color-surface) text-sm"
+              />
+              <input
+                value={fact.value}
+                placeholder="Valor"
+                onChange={(e) =>
+                  setFacts((rows) =>
+                    rows.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)),
+                  )
+                }
+                className="flex-1 border border-(--color-border) p-1 bg-(--color-surface) text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setFacts((rows) => rows.filter((_, j) => j !== i))}
+                aria-label={`Quitar ${fact.key || "dato"}`}
+                className="border border-(--color-link-red) text-(--color-link-red) px-2 text-sm hover:bg-(--color-link-red) hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setFacts((rows) => [...rows, { key: "", value: "" }])}
+          className="mt-2 border border-(--color-border) px-3 py-1 text-sm bg-(--color-surface-alt) hover:bg-(--color-surface)"
+        >
+          Agregar dato
+        </button>
+      </fieldset>
       <fieldset className="block">
         <legend className="text-sm font-semibold">Categorías</legend>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">

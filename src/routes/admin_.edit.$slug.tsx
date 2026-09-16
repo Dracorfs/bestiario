@@ -10,6 +10,8 @@ import { archiveTweetsInContent } from "~/lib/tweet-archive";
 import { archiveBookmarksInContent } from "~/lib/bookmark-archive";
 import { optimizeImage } from "~/lib/tweet-media";
 import { setArticleCategories } from "~/lib/category-sync";
+import { parseKeyFacts } from "~/lib/key-facts";
+import { Prisma } from "@prisma/client";
 
 const loadArticle = createServerFn({ method: "GET" })
   .middleware([adminOnly])
@@ -26,6 +28,7 @@ const loadArticle = createServerFn({ method: "GET" })
         published: true,
         pictureData: true,
         pictureMimeType: true,
+        infoboxJson: true,
         categories: { select: { category: { select: { name: true } } } },
       },
     });
@@ -39,6 +42,7 @@ const loadArticle = createServerFn({ method: "GET" })
         published: true,
         pictureBase64: null,
         categories: [] as string[],
+        facts: [] as ReturnType<typeof parseKeyFacts>,
       };
     }
     return {
@@ -53,6 +57,7 @@ const loadArticle = createServerFn({ method: "GET" })
           ? bufferToDataUrl(Buffer.from(a.pictureData), a.pictureMimeType)
           : null,
       categories: a.categories.map((c) => c.category.name),
+      facts: parseKeyFacts(a.infoboxJson),
     };
   });
 
@@ -89,6 +94,12 @@ const saveArticle = createServerFn({ method: "POST" })
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
+        infoboxJson:
+        data.facts.length > 0
+          ? // KeyFact[] is structurally JSON, but a named interface has no index
+            // signature, so Prisma's InputJsonValue does not accept it directly.
+            (data.facts as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         pictureData,
         pictureMimeType,
       },
@@ -98,6 +109,12 @@ const saveArticle = createServerFn({ method: "POST" })
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
+        infoboxJson:
+        data.facts.length > 0
+          ? // KeyFact[] is structurally JSON, but a named interface has no index
+            // signature, so Prisma's InputJsonValue does not accept it directly.
+            (data.facts as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         pictureData,
         pictureMimeType,
       },
@@ -163,6 +180,7 @@ function AdminEditPage() {
           published: initial.published,
           pictureBase64: initial.pictureBase64,
           categories: initial.categories,
+          facts: initial.facts,
         }}
         availableCategories={availableCategories}
         slugEditable={false}
