@@ -1,0 +1,42 @@
+import { Link } from "@tanstack/react-router";
+import { KindBadge } from "~/components/KindBadge";
+import type { ArticleKind } from "~/lib/kind";
+
+export interface EntrySummary {
+  slug: string;
+  title: string;
+  kind: ArticleKind;
+  summary: string | null;
+  hasPicture: boolean;
+}
+
+export function EntryCard({ entry }: { entry: EntrySummary }) {
+  return (
+    // list-none sits on the <li>, not the <ul>: `.prose-wiki ul { list-style: disc }`
+    // is more specific than a utility class on the parent, but a declaration on
+    // the item itself beats the value it would otherwise inherit.
+    <li className="list-none border border-(--color-wiki-border) bg-white">
+      <Link
+        to="/article/$slug"
+        params={{ slug: entry.slug }}
+        className="block h-full p-3 hover:bg-(--color-wiki-sidebar)"
+      >
+        {entry.hasPicture && (
+          <img
+            src={`/picture/${entry.slug}`}
+            alt=""
+            loading="lazy"
+            className="mb-2 h-36 w-full object-cover border border-(--color-wiki-border)"
+          />
+        )}
+        <KindBadge kind={entry.kind} />
+        <h3 className="mt-1 font-serif text-base text-(--color-wiki-link)">
+          {entry.title}
+        </h3>
+        {entry.summary && (
+          <p className="mt-1 text-sm text-(--color-wiki-muted)">{entry.summary}</p>
+        )}
+      </Link>
+    </li>
+  );
+}
