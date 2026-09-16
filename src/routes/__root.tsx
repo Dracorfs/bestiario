@@ -51,7 +51,19 @@ export const Route = createRootRoute({
           "Bestiario. la pokedex de la política argentina.",
       },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap",
+      },
+      { rel: "stylesheet", href: appCss },
+    ],
   }),
   loader: () => getNav(),
   component: RootComponent,
@@ -74,7 +86,7 @@ function RootDocument({ children }: { children: ReactNode }) {
       <body>
         <Header />
         <main className="max-w-[1100px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-6">
-          <article className="prose-wiki min-w-0">{children}</article>
+          <article className="prose-entry min-w-0">{children}</article>
           <Sidebar />
         </main>
         <Scripts />
@@ -85,26 +97,30 @@ function RootDocument({ children }: { children: ReactNode }) {
 
 function Header() {
   return (
-    <header className="border-b border-(--color-wiki-border) bg-(--color-wiki-sidebar)">
-      <div className="max-w-[1100px] mx-auto px-4 py-3 flex items-center gap-6">
+    <header className="border-b border-(--color-border) bg-(--color-surface-alt)">
+      <div className="max-w-[1100px] mx-auto px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         <Link to="/" className="flex items-baseline gap-2 no-underline">
           <span className="text-2xl font-serif font-bold tracking-tight">
             Bestiario<span className="text-(--color-bestiario-accent)">.</span>
           </span>
-          <span className="text-xs text-(--color-wiki-muted)">
+          <span className="text-xs text-(--color-muted)">
             la pokedex de la política argentina
           </span>
         </Link>
-        <form action="/search" method="get" className="ml-auto flex gap-2">
+        <form
+          action="/search"
+          method="get"
+          className="w-full sm:w-auto sm:ml-auto flex gap-2"
+        >
           <input
             type="search"
             name="q"
             placeholder="Buscar en Bestiario."
-            className="border border-(--color-wiki-border) px-2 py-1 text-sm w-72 bg-white"
+            className="min-w-0 flex-1 sm:flex-none sm:w-72 rounded-md border border-(--color-border) px-2 py-1 text-sm bg-(--color-surface)"
           />
           <button
             type="submit"
-            className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-white hover:bg-(--color-wiki-sidebar)"
+            className="shrink-0 rounded-md border border-(--color-border) px-3 py-1 text-sm bg-(--color-surface) hover:bg-(--color-surface-alt)"
           >
             Buscar
           </button>
@@ -118,13 +134,13 @@ function Sidebar() {
   const { kindCounts, categories } = Route.useLoaderData();
   return (
     <aside className="text-sm space-y-4">
-      <nav className="border border-(--color-wiki-border) p-3 bg-(--color-wiki-sidebar)">
-        <h3 className="font-serif text-base mb-2 border-b border-(--color-wiki-border) pb-1">
+      <nav className="rounded-lg border border-(--color-border) p-3 bg-(--color-surface-alt)">
+        <h3 className="font-serif text-base mb-2 border-b border-(--color-border) pb-1">
           Navegación
         </h3>
         <ul className="space-y-1">
           <li>
-            <Link to="/" className="text-(--color-wiki-link) hover:underline">
+            <Link to="/" className="text-(--color-link) hover:underline">
               Portada
             </Link>
           </li>
@@ -134,18 +150,18 @@ function Sidebar() {
                 to="/$kind"
                 params={{ kind: kindPathSegment(kind) }}
                 search={{ orden: "az" as const }}
-                className="text-(--color-wiki-link) hover:underline"
+                className="text-(--color-link) hover:underline"
               >
                 {kindPlural(kind)}
               </Link>{" "}
-              <span className="text-(--color-wiki-muted)">({count})</span>
+              <span className="text-(--color-muted)">({count})</span>
             </li>
           ))}
         </ul>
       </nav>
       {categories.length > 0 && (
-        <nav className="border border-(--color-wiki-border) p-3 bg-(--color-wiki-sidebar)">
-          <h3 className="font-serif text-base mb-2 border-b border-(--color-wiki-border) pb-1">
+        <nav className="rounded-lg border border-(--color-border) p-3 bg-(--color-surface-alt)">
+          <h3 className="font-serif text-base mb-2 border-b border-(--color-border) pb-1">
             Categorías
           </h3>
           <ul className="space-y-1">
@@ -154,15 +170,15 @@ function Sidebar() {
                 <Link
                   to="/category/$slug"
                   params={{ slug: c.slug }}
-                  className="text-(--color-wiki-link) hover:underline"
+                  className="text-(--color-link) hover:underline"
                 >
                   {c.name}
                 </Link>{" "}
-                <span className="text-(--color-wiki-muted)">({c._count.articles})</span>
+                <span className="text-(--color-muted)">({c._count.articles})</span>
               </li>
             ))}
             <li className="pt-1">
-              <Link to="/categorias" className="text-(--color-wiki-link) hover:underline">
+              <Link to="/categorias" className="text-(--color-link) hover:underline">
                 Todas las categorías
               </Link>
             </li>

@@ -100,7 +100,7 @@ function HomePage() {
                 to="/$kind"
                 params={{ kind: kindPathSegment(kind) }}
                 search={{ orden: "az" as const }}
-                className="text-(--color-wiki-link) hover:underline"
+                className="text-(--color-link) hover:underline"
               >
                 {count} {kindPlural(kind).toLowerCase()}
               </Link>
@@ -132,7 +132,7 @@ function HomePage() {
                   to="/$kind"
                   params={{ kind: kindPathSegment(kind) }}
                   search={{ orden: "az" as const }}
-                  className="text-(--color-wiki-link) hover:underline"
+                  className="text-(--color-link) hover:underline"
                 >
                   Ver todos ({kindCounts.find((k: { kind: ArticleKind }) => k.kind === kind)?.count})
                 </Link>

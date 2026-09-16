@@ -45,13 +45,13 @@ function AdminIndexPage() {
         <Link
           to="/admin/new"
           search={{ slug: "" }}
-          className="text-(--color-wiki-link) hover:underline"
+          className="text-(--color-link) hover:underline"
         >
           Nuevo artículo
         </Link>
         <a
           href="/admin/logout"
-          className="text-(--color-wiki-link) hover:underline"
+          className="text-(--color-link) hover:underline"
         >
           Cerrar sesión
         </a>
@@ -61,7 +61,7 @@ function AdminIndexPage() {
         <select
           value={kindFilter}
           onChange={(e) => setKindFilter(e.target.value as ArticleKind | "")}
-          className="border border-(--color-wiki-border) p-1 bg-white"
+          className="border border-(--color-border) p-1 bg-(--color-surface)"
         >
           <option value="">Todos ({articles.length})</option>
           {ARTICLE_KINDS.map((k) => (
@@ -72,9 +72,9 @@ function AdminIndexPage() {
           ))}
         </select>
       </label>
-      <table className="w-full text-sm border border-(--color-wiki-border)">
+      <table className="w-full text-sm border border-(--color-border)">
         <thead>
-          <tr className="bg-(--color-wiki-sidebar) text-left">
+          <tr className="bg-(--color-surface-alt) text-left">
             <th className="p-2">Slug</th>
             <th className="p-2">Título</th>
             <th className="p-2">Tipo</th>
@@ -84,12 +84,12 @@ function AdminIndexPage() {
         </thead>
         <tbody>
           {visible.map((a: (typeof articles)[number]) => (
-            <tr key={a.slug} className="border-t border-(--color-wiki-border)">
+            <tr key={a.slug} className="border-t border-(--color-border)">
               <td className="p-2 font-mono">
                 <Link
                   to="/admin/edit/$slug"
                   params={{ slug: a.slug }}
-                  className="text-(--color-wiki-link) hover:underline"
+                  className="text-(--color-link) hover:underline"
                 >
                   {a.slug}
                 </Link>

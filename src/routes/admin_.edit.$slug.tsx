@@ -172,11 +172,11 @@ function AdminEditPage() {
           router.navigate({ to: "/article/$slug", params: { slug: values.slug } });
         }}
       />
-      <div className="mt-6 pt-3 border-t border-(--color-wiki-border)">
+      <div className="mt-6 pt-3 border-t border-(--color-border)">
         <button
           type="button"
           disabled={deleting}
-          className="border border-(--color-wiki-link-red) text-(--color-wiki-link-red) px-4 py-1 hover:bg-(--color-wiki-link-red) hover:text-white disabled:opacity-50"
+          className="border border-(--color-link-red) text-(--color-link-red) px-4 py-1 hover:bg-(--color-link-red) hover:text-white disabled:opacity-50"
           onClick={async () => {
             if (!confirm(`¿Borrar el artículo "${initial.slug}"? Esta acción no se puede deshacer.`)) return;
             setDeleting(true);

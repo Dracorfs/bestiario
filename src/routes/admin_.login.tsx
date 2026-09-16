@@ -26,7 +26,7 @@ function LoginPage() {
       <h1>Acceso administrador</h1>
       <button
         type="button"
-        className="border border-(--color-wiki-border) px-4 py-1 bg-(--color-wiki-sidebar) hover:bg-white"
+        className="border border-(--color-border) px-4 py-1 bg-(--color-surface-alt) hover:bg-(--color-surface)"
         onClick={async () => {
           const url = await getGoogleAuthUrl({ data: redirectTo });
           window.location.href = url;

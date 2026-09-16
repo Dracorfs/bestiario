@@ -1,17 +1,26 @@
 @import "tailwindcss" source("../src");
 
 @theme {
-  --font-serif: "Linux Libertine", "Georgia", "Times New Roman", serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --color-wiki-link: #0645ad;
-  --color-wiki-link-visited: #0b0080;
-  --color-wiki-link-red: #ba0000;
-  --color-wiki-bg: #ffffff;
-  --color-wiki-border: #a2a9b1;
-  --color-wiki-sidebar: #f8f9fa;
-  --color-wiki-text: #202122;
-  --color-wiki-muted: #54595d;
+
+  /* Soft encyclopedia: warm off-white page, white reading surface, quiet blue
+     links. Nothing here is a Wikipedia colour any more. */
+  --color-bg: #faf9f6;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f2efe8;
+  --color-border: #e4e0d8;
+  --color-text: #1f2328;
+  --color-muted: #5f6368;
+  --color-link: #1f4e8c;
+  --color-link-visited: #5b4a86;
+  --color-link-red: #9b2c2c;
   --color-bestiario-accent: #75aadb;
+
+  /* Longest comfortable measure for running text. 58ch, not the 68ch the plan
+     guessed: `ch` is the width of "0", which is wider than the average letter,
+     so 68ch measured out at ~86 characters per line. 58ch lands near 73. */
+  --measure: 58ch;
 
   /* Entry-type colours: muted tinted pills, never loud. Víctima is a calm
      slate blue — victim pages carry no accusatory red. */
@@ -24,67 +33,94 @@
 }
 
 html, body {
-  background: var(--color-wiki-bg);
-  color: var(--color-wiki-text);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 16.5px;
+  line-height: 1.7;
 }
 
-.prose-wiki h1 {
+/* Running text only. Card grids and other layout live outside it, so the
+   measure never squeezes them. */
+.reading-column {
+  max-width: var(--measure);
+}
+
+.prose-entry h1 {
   font-family: var(--font-serif);
-  font-size: 1.8rem;
-  border-bottom: 1px solid var(--color-wiki-border);
+  font-size: 2.1rem;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Only h2 keeps a rule, and a light one — not a grey underline per heading. */
+.prose-entry h2 {
+  font-family: var(--font-serif);
+  font-size: 1.45rem;
+  border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.25rem;
-  margin-bottom: 0.5rem;
-  font-weight: 400;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
 }
 
-.prose-wiki h2 {
+.prose-entry h3 {
   font-family: var(--font-serif);
-  font-size: 1.5rem;
-  border-bottom: 1px solid var(--color-wiki-border);
-  padding-bottom: 0.2rem;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  font-weight: 400;
-}
-
-.prose-wiki h3 {
-  font-size: 1.2rem;
-  margin-top: 0.8rem;
+  font-size: 1.15rem;
+  margin-top: 1.5rem;
   margin-bottom: 0.4rem;
   font-weight: 600;
 }
 
-.prose-wiki p {
-  margin-bottom: 0.5rem;
+.prose-entry p {
+  margin-bottom: 0.9rem;
 }
 
-.prose-wiki a {
-  color: var(--color-wiki-link);
+.prose-entry a {
+  color: var(--color-link);
   text-decoration: none;
 }
 
-.prose-wiki a:hover {
+.prose-entry a:hover {
   text-decoration: underline;
 }
 
-.prose-wiki a.red {
-  color: var(--color-wiki-link-red);
+.prose-entry a.red {
+  color: var(--color-link-red);
 }
 
-.prose-wiki ul, .prose-wiki ol {
+.prose-entry ul, .prose-entry ol {
   padding-left: 1.5rem;
   margin-bottom: 0.5rem;
 }
 
-.prose-wiki ul { list-style: disc; }
-.prose-wiki ol { list-style: decimal; }
+.prose-entry ul { list-style: disc; }
+.prose-entry ol { list-style: decimal; }
 
-.prose-wiki blockquote {
-  border-left: 3px solid var(--color-wiki-border);
-  padding-left: 0.75rem;
-  color: var(--color-wiki-muted);
-  margin: 0.5rem 0;
+/* Pull-quote rather than a plain indent: tinted panel, coloured bar. */
+.prose-entry blockquote {
+  border-left: 3px solid var(--color-link);
+  background: var(--color-surface-alt);
+  border-radius: 0 6px 6px 0;
+  padding: 0.6rem 0.9rem;
+  color: var(--color-muted);
+  margin: 1rem 0;
+}
+
+.prose-entry figure {
+  margin: 1.25rem 0;
+}
+
+.prose-entry figcaption {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin-top: 0.35rem;
+}
+
+/* Dates and other small-caps metadata. */
+.meta-caps {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.03em;
 }

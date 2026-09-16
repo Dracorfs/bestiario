@@ -37,9 +37,9 @@ function CategoryPage() {
     <>
       <h1>Categoría: {cat.name}</h1>
       {cat.description && (
-        <p className="text-(--color-wiki-muted)">{cat.description}</p>
+        <p className="text-(--color-muted)">{cat.description}</p>
       )}
-      <p className="text-(--color-wiki-muted) text-sm">
+      <p className="text-(--color-muted) text-sm">
         {cat.articles.length} entrada{cat.articles.length === 1 ? "" : "s"}.
       </p>
       {ARTICLE_KINDS.map((kind: ArticleKind) => {
@@ -59,7 +59,7 @@ function CategoryPage() {
                     <Link
                       to="/article/$slug"
                       params={{ slug: article.slug }}
-                      className="text-(--color-wiki-link) hover:underline"
+                      className="text-(--color-link) hover:underline"
                     >
                       {article.title}
                     </Link>

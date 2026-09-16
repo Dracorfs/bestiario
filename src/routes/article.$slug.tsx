@@ -49,17 +49,19 @@ function ArticlePage() {
         <h1 className="mt-1">{article.title}</h1>
       </div>
       {article.summary && (
-        <p className="text-(--color-wiki-muted) italic">{article.summary}</p>
+        <p className="reading-column text-(--color-muted) italic">
+          {article.summary}
+        </p>
       )}
       {article.pictureDataUrl && (
         <img
           src={article.pictureDataUrl}
           alt={article.title}
-          className="float-right ml-4 mb-4 w-72 border border-(--color-wiki-border)"
+          className="float-right ml-4 mb-4 w-72 rounded-lg border border-(--color-border)"
         />
       )}
-      <div dangerouslySetInnerHTML={{ __html: article.html }} />
-      <div className="mt-6 pt-3 border-t border-(--color-wiki-border) text-xs text-(--color-wiki-muted) flex flex-wrap gap-3 items-center">
+      <div className="reading-column" dangerouslySetInnerHTML={{ __html: article.html }} />
+      <div className="mt-6 pt-3 border-t border-(--color-border) text-xs text-(--color-muted) flex flex-wrap gap-3 items-center">
         {article.categories.length > 0 && (
           <span>
             Categorías:{" "}
@@ -69,7 +71,7 @@ function ArticlePage() {
                 <Link
                   to="/category/$slug"
                   params={{ slug: c.category.slug }}
-                  className="text-(--color-wiki-link) hover:underline"
+                  className="text-(--color-link) hover:underline"
                 >
                   {c.category.name}
                 </Link>
@@ -77,7 +79,7 @@ function ArticlePage() {
             ))}
           </span>
         )}
-        <span className="ml-auto">
+        <span className="ml-auto meta-caps">
           Última edición:{" "}
           {new Date(article.updatedAt).toLocaleDateString("es-AR")}
         </span>
@@ -96,7 +98,7 @@ function NotFoundArticle() {
         <Link
           to="/admin/new"
           search={{ slug }}
-          className="text-(--color-wiki-link-red) hover:underline"
+          className="text-(--color-link-red) hover:underline"
         >
           Crear este artículo
         </Link>

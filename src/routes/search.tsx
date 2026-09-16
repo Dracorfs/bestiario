@@ -53,13 +53,13 @@ function SearchPage() {
           type="search"
           name="q"
           defaultValue={q}
-          className="border border-(--color-wiki-border) px-2 py-1 text-sm flex-1 bg-white"
+          className="border border-(--color-border) px-2 py-1 text-sm flex-1 bg-(--color-surface)"
           placeholder="Escribí tu búsqueda…"
         />
         <select
           name="tipo"
           defaultValue={tipo}
-          className="border border-(--color-wiki-border) px-2 py-1 text-sm bg-white"
+          className="border border-(--color-border) px-2 py-1 text-sm bg-(--color-surface)"
         >
           <option value="">Todos los tipos</option>
           {ARTICLE_KINDS.map((k) => (
@@ -70,13 +70,13 @@ function SearchPage() {
         </select>
         <button
           type="submit"
-          className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-white hover:bg-(--color-wiki-sidebar)"
+          className="border border-(--color-border) px-3 py-1 text-sm bg-(--color-surface) hover:bg-(--color-surface-alt)"
         >
           Buscar
         </button>
       </form>
       {q && (
-        <p className="text-(--color-wiki-muted) text-sm">
+        <p className="text-(--color-muted) text-sm">
           {results.length} resultado{results.length === 1 ? "" : "s"} para{" "}
           <strong>{q}</strong>.
         </p>
@@ -88,12 +88,12 @@ function SearchPage() {
             <Link
               to="/article/$slug"
               params={{ slug: r.slug }}
-              className="text-(--color-wiki-link) hover:underline"
+              className="text-(--color-link) hover:underline"
             >
               {r.title}
             </Link>
             {r.summary && (
-              <span className="text-(--color-wiki-muted)"> — {r.summary}</span>
+              <span className="text-(--color-muted)"> — {r.summary}</span>
             )}
           </li>
         ))}

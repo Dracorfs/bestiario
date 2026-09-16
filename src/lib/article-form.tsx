@@ -102,7 +102,7 @@ export function ArticleForm({
               setSlugTouched(true);
             }}
             required
-            className="block w-full border border-(--color-wiki-border) p-1 bg-white font-mono text-sm"
+            className="block w-full border border-(--color-border) p-1 bg-(--color-surface) font-mono text-sm"
           />
         </label>
       )}
@@ -116,19 +116,19 @@ export function ArticleForm({
             if (slugEditable && !slugTouched) setSlug(slugify(value));
           }}
           required
-          className="block w-full border border-(--color-wiki-border) p-1 bg-white"
+          className="block w-full border border-(--color-border) p-1 bg-(--color-surface)"
         />
       </label>
       <fieldset className="block">
         <legend className="text-sm font-semibold">Tipo</legend>
-        <div className="mt-1 inline-flex border border-(--color-wiki-border)">
+        <div className="mt-1 inline-flex border border-(--color-border)">
           {ARTICLE_KINDS.map((k) => (
             <label
               key={k}
-              className={`px-3 py-1 text-sm cursor-pointer border-r border-(--color-wiki-border) last:border-r-0 ${
+              className={`px-3 py-1 text-sm cursor-pointer border-r border-(--color-border) last:border-r-0 ${
                 kind === k
-                  ? "bg-(--color-wiki-sidebar) font-semibold"
-                  : "bg-white hover:bg-(--color-wiki-sidebar)"
+                  ? "bg-(--color-surface-alt) font-semibold"
+                  : "bg-(--color-surface) hover:bg-(--color-surface-alt)"
               }`}
             >
               <input
@@ -149,7 +149,7 @@ export function ArticleForm({
         <input
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
-          className="block w-full border border-(--color-wiki-border) p-1 bg-white"
+          className="block w-full border border-(--color-border) p-1 bg-(--color-surface)"
         />
       </label>
       <label className="block">
@@ -159,7 +159,7 @@ export function ArticleForm({
             <img
               src={pictureBase64}
               alt="Vista previa"
-              className="max-w-xs border border-(--color-wiki-border)"
+              className="max-w-xs border border-(--color-border)"
             />
           </div>
         )}
@@ -167,7 +167,7 @@ export function ArticleForm({
           <button
             type="button"
             onClick={() => pictureInputRef.current?.click()}
-            className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-(--color-wiki-sidebar) hover:bg-white"
+            className="border border-(--color-border) px-3 py-1 text-sm bg-(--color-surface-alt) hover:bg-(--color-surface)"
           >
             {pictureBase64 ? "Cambiar imagen" : "Subir imagen"}
           </button>
@@ -175,7 +175,7 @@ export function ArticleForm({
             <button
               type="button"
               onClick={() => setPictureBase64(null)}
-              className="border border-(--color-wiki-link-red) text-(--color-wiki-link-red) px-3 py-1 text-sm hover:bg-(--color-wiki-link-red) hover:text-white"
+              className="border border-(--color-link-red) text-(--color-link-red) px-3 py-1 text-sm hover:bg-(--color-link-red) hover:text-white"
             >
               Quitar imagen
             </button>
@@ -223,7 +223,7 @@ export function ArticleForm({
             </label>
           ))}
           {options.length === 0 && (
-            <span className="text-sm text-(--color-wiki-muted)">
+            <span className="text-sm text-(--color-muted)">
               Todavía no hay categorías. Creá la primera abajo.
             </span>
           )}
@@ -240,12 +240,12 @@ export function ArticleForm({
               }
             }}
             placeholder="Nueva categoría"
-            className="border border-(--color-wiki-border) p-1 bg-white text-sm"
+            className="border border-(--color-border) p-1 bg-(--color-surface) text-sm"
           />
           <button
             type="button"
             onClick={addNewCategory}
-            className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-(--color-wiki-sidebar) hover:bg-white"
+            className="border border-(--color-border) px-3 py-1 text-sm bg-(--color-surface-alt) hover:bg-(--color-surface)"
           >
             Agregar
           </button>
@@ -257,7 +257,7 @@ export function ArticleForm({
           value={contentHtml}
           onChange={(e) => setContentHtml(e.target.value)}
           rows={20}
-          className="block w-full border border-(--color-wiki-border) p-2 font-mono text-sm bg-white"
+          className="block w-full border border-(--color-border) p-2 font-mono text-sm bg-(--color-surface)"
         />
       </label>
       <label className="flex items-center gap-2">
@@ -272,7 +272,7 @@ export function ArticleForm({
       <button
         type="submit"
         disabled={saving}
-        className="border border-(--color-wiki-border) px-4 py-1 bg-(--color-wiki-sidebar) hover:bg-white disabled:opacity-50"
+        className="border border-(--color-border) px-4 py-1 bg-(--color-surface-alt) hover:bg-(--color-surface) disabled:opacity-50"
       >
         {saving ? "Guardando…" : submitLabel}
       </button>

@@ -33,11 +33,11 @@ function CategoriesIndexPage() {
               <Link
                 to="/category/$slug"
                 params={{ slug: c.slug }}
-                className="text-(--color-wiki-link) hover:underline"
+                className="text-(--color-link) hover:underline"
               >
                 {c.name}
               </Link>{" "}
-              <span className="text-(--color-wiki-muted)">
+              <span className="text-(--color-muted)">
                 ({c._count.articles})
               </span>
               {c.description && <> — {c.description}</>}

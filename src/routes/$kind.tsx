@@ -57,7 +57,7 @@ function KindIndexPage() {
   return (
     <>
       <h1>{kindPlural(kind)}</h1>
-      <p className="text-(--color-wiki-muted) text-sm">
+      <p className="text-(--color-muted) text-sm">
         {entries.length} entrada{entries.length === 1 ? "" : "s"}.{" "}
         <span className="ml-2">
           Ordenar:{" "}
@@ -66,7 +66,7 @@ function KindIndexPage() {
             params={{ kind: segment }}
             search={{ orden: "az" as Order }}
             className={
-              orden === "az" ? "font-semibold" : "text-(--color-wiki-link) hover:underline"
+              orden === "az" ? "font-semibold" : "text-(--color-link) hover:underline"
             }
           >
             A–Z
@@ -79,7 +79,7 @@ function KindIndexPage() {
             className={
               orden === "recientes"
                 ? "font-semibold"
-                : "text-(--color-wiki-link) hover:underline"
+                : "text-(--color-link) hover:underline"
             }
           >
             Recientes

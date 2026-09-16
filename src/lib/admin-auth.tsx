@@ -93,7 +93,7 @@ export function NotAuthorized({ email }: { email: string }) {
       <p>
         <a
           href="/admin/logout"
-          className="text-(--color-wiki-link) hover:underline"
+          className="text-(--color-link) hover:underline"
         >
           Cerrar sesión
         </a>
