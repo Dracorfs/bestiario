@@ -68,7 +68,7 @@ export function ArticleForm({
               setSlugTouched(true);
             }}
             required
-            className="block w-full border border-[--color-wiki-border] p-1 bg-white font-mono text-sm"
+            className="block w-full border border-(--color-wiki-border) p-1 bg-white font-mono text-sm"
           />
         </label>
       )}
@@ -82,7 +82,7 @@ export function ArticleForm({
             if (slugEditable && !slugTouched) setSlug(slugify(value));
           }}
           required
-          className="block w-full border border-[--color-wiki-border] p-1 bg-white"
+          className="block w-full border border-(--color-wiki-border) p-1 bg-white"
         />
       </label>
       <label className="block">
@@ -90,7 +90,7 @@ export function ArticleForm({
         <input
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
-          className="block w-full border border-[--color-wiki-border] p-1 bg-white"
+          className="block w-full border border-(--color-wiki-border) p-1 bg-white"
         />
       </label>
       <label className="block">
@@ -100,7 +100,7 @@ export function ArticleForm({
             <img
               src={pictureBase64}
               alt="Vista previa"
-              className="max-w-xs border border-[--color-wiki-border]"
+              className="max-w-xs border border-(--color-wiki-border)"
             />
           </div>
         )}
@@ -108,7 +108,7 @@ export function ArticleForm({
           <button
             type="button"
             onClick={() => pictureInputRef.current?.click()}
-            className="border border-[--color-wiki-border] px-3 py-1 text-sm bg-[--color-wiki-sidebar] hover:bg-white"
+            className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-(--color-wiki-sidebar) hover:bg-white"
           >
             {pictureBase64 ? "Cambiar imagen" : "Subir imagen"}
           </button>
@@ -116,7 +116,7 @@ export function ArticleForm({
             <button
               type="button"
               onClick={() => setPictureBase64(null)}
-              className="border border-[--color-wiki-link-red] text-[--color-wiki-link-red] px-3 py-1 text-sm hover:bg-[--color-wiki-link-red] hover:text-white"
+              className="border border-(--color-wiki-link-red) text-(--color-wiki-link-red) px-3 py-1 text-sm hover:bg-(--color-wiki-link-red) hover:text-white"
             >
               Quitar imagen
             </button>
@@ -150,7 +150,7 @@ export function ArticleForm({
           value={contentHtml}
           onChange={(e) => setContentHtml(e.target.value)}
           rows={20}
-          className="block w-full border border-[--color-wiki-border] p-2 font-mono text-sm bg-white"
+          className="block w-full border border-(--color-wiki-border) p-2 font-mono text-sm bg-white"
         />
       </label>
       <label className="flex items-center gap-2">
@@ -165,7 +165,7 @@ export function ArticleForm({
       <button
         type="submit"
         disabled={saving}
-        className="border border-[--color-wiki-border] px-4 py-1 bg-[--color-wiki-sidebar] hover:bg-white disabled:opacity-50"
+        className="border border-(--color-wiki-border) px-4 py-1 bg-(--color-wiki-sidebar) hover:bg-white disabled:opacity-50"
       >
         {saving ? "Guardando…" : submitLabel}
       </button>

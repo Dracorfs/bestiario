@@ -45,7 +45,6 @@ function RootDocument({ children }: { children: ReactNode }) {
           <article className="prose-wiki min-w-0">{children}</article>
           <Sidebar />
         </main>
-        <Footer />
         <Scripts />
       </body>
     </html>
@@ -54,13 +53,13 @@ function RootDocument({ children }: { children: ReactNode }) {
 
 function Header() {
   return (
-    <header className="border-b border-[--color-wiki-border] bg-[--color-wiki-sidebar]">
+    <header className="border-b border-(--color-wiki-border) bg-(--color-wiki-sidebar)">
       <div className="max-w-[1100px] mx-auto px-4 py-3 flex items-center gap-6">
         <Link to="/" className="flex items-baseline gap-2 no-underline">
           <span className="text-2xl font-serif font-bold tracking-tight">
-            Bestiario<span className="text-[--color-bestiario-accent]">.</span>
+            Bestiario<span className="text-(--color-bestiario-accent)">.</span>
           </span>
-          <span className="text-xs text-[--color-wiki-muted]">
+          <span className="text-xs text-(--color-wiki-muted)">
             la pokedex de la política argentina
           </span>
         </Link>
@@ -69,11 +68,11 @@ function Header() {
             type="search"
             name="q"
             placeholder="Buscar en Bestiario."
-            className="border border-[--color-wiki-border] px-2 py-1 text-sm w-72 bg-white"
+            className="border border-(--color-wiki-border) px-2 py-1 text-sm w-72 bg-white"
           />
           <button
             type="submit"
-            className="border border-[--color-wiki-border] px-3 py-1 text-sm bg-white hover:bg-[--color-wiki-sidebar]"
+            className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-white hover:bg-(--color-wiki-sidebar)"
           >
             Buscar
           </button>
@@ -86,53 +85,18 @@ function Header() {
 function Sidebar() {
   return (
     <aside className="text-sm space-y-4">
-      <nav className="border border-[--color-wiki-border] p-3 bg-[--color-wiki-sidebar]">
-        <h3 className="font-serif text-base mb-2 border-b border-[--color-wiki-border] pb-1">
+      <nav className="border border-(--color-wiki-border) p-3 bg-(--color-wiki-sidebar)">
+        <h3 className="font-serif text-base mb-2 border-b border-(--color-wiki-border) pb-1">
           Navegación
         </h3>
         <ul className="space-y-1">
           <li>
-            <Link to="/" className="text-[--color-wiki-link] hover:underline">
+            <Link to="/" className="text-(--color-wiki-link) hover:underline">
               Portada
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/category/$slug"
-              params={{ slug: "presidentes" }}
-              className="text-[--color-wiki-link] hover:underline"
-            >
-              Presidentes
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/category/$slug"
-              params={{ slug: "partidos-politicos" }}
-              className="text-[--color-wiki-link] hover:underline"
-            >
-              Partidos políticos
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/category/$slug"
-              params={{ slug: "instituciones" }}
-              className="text-[--color-wiki-link] hover:underline"
-            >
-              Instituciones
             </Link>
           </li>
         </ul>
       </nav>
     </aside>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-[--color-wiki-border] mt-12 py-4 text-center text-xs text-[--color-wiki-muted]">
-      Bestiario. — contenido bajo licencia CC BY-SA.
-    </footer>
   );
 }

@@ -187,7 +187,7 @@ describe("buildBookmarkCardHtml", () => {
       faviconData: null,
       faviconMimeType: null,
     });
-    expect(html).not.toContain("text-[--color-wiki-muted] text-sm");
+    expect(html).not.toContain("text-(--color-wiki-muted) text-sm");
     expect(html).not.toContain("w-full rounded mt-2");
   });
 });

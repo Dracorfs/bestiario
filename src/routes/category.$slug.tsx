@@ -35,7 +35,7 @@ function CategoryPage() {
     <>
       <h1>Categoría: {cat.name}</h1>
       {cat.description && (
-        <p className="text-[--color-wiki-muted]">{cat.description}</p>
+        <p className="text-(--color-wiki-muted)">{cat.description}</p>
       )}
       <h2>Artículos ({cat.articles.length})</h2>
       <ul>
@@ -46,7 +46,7 @@ function CategoryPage() {
             <Link
               to="/article/$slug"
               params={{ slug: article.slug }}
-              className="text-[--color-wiki-link] hover:underline"
+              className="text-(--color-wiki-link) hover:underline"
             >
               {article.title}
             </Link>

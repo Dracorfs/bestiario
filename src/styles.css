@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source("../src");
 
 @theme {
   --font-serif: "Linux Libertine", "Georgia", "Times New Roman", serif;

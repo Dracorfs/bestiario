@@ -28,11 +28,7 @@ function HomePage() {
       </p>
       <h2>Artículos recientes</h2>
       {articles.length === 0 ? (
-        <p>
-          No hay artículos aún. Ejecutá <code>pnpm seed</code> (o{" "}
-          <code>npm run seed</code>) para importar contenido inicial desde
-          Wikipedia.
-        </p>
+        <p>Todavía no hay carpetazos publicados. Volvé pronto.</p>
       ) : (
         <ul>
           {articles.map((a: (typeof articles)[number]) => (
@@ -40,7 +36,7 @@ function HomePage() {
               <Link
                 to="/article/$slug"
                 params={{ slug: a.slug }}
-                className="text-[--color-wiki-link] hover:underline"
+                className="text-(--color-wiki-link) hover:underline"
               >
                 {a.title}
               </Link>

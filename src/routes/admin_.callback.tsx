@@ -40,7 +40,7 @@ function CallbackError() {
       <h1>Error al iniciar sesión</h1>
       <p>No se pudo completar el inicio de sesión con Google.</p>
       <p>
-        <a href="/admin/login" className="text-[--color-wiki-link] hover:underline">
+        <a href="/admin/login" className="text-(--color-wiki-link) hover:underline">
           Volver a iniciar sesión
         </a>
       </p>

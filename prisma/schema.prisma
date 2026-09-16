@@ -14,7 +14,6 @@ model Article {
   summary     String?
   contentHtml String   @db.Text
   infoboxJson Json?
-  sourceUrl   String?
   published   Boolean  @default(true)
   pictureData     Bytes?
   pictureMimeType String?

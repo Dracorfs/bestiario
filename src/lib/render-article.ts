@@ -59,11 +59,11 @@ export function buildTweetCardHtml(
       return `<img src="${src}" alt="" class="w-full rounded mt-2" />`;
     })
     .join("");
-  return `<blockquote class="tweet-embed border border-[--color-wiki-border] rounded p-3 my-3 max-w-md">
-  <p class="font-semibold">${escapeHtml(tweet.authorName)} <span class="text-[--color-wiki-muted]">@${escapeHtml(tweet.authorHandle)}</span></p>
+  return `<blockquote class="tweet-embed border border-(--color-wiki-border) rounded p-3 my-3 max-w-md">
+  <p class="font-semibold">${escapeHtml(tweet.authorName)} <span class="text-(--color-wiki-muted)">@${escapeHtml(tweet.authorHandle)}</span></p>
   <p class="mt-1 whitespace-pre-wrap">${escapeHtml(tweet.text)}</p>
   ${mediaHtml}
-  <a href="${escapeHtml(tweet.sourceUrl)}" target="_blank" rel="noreferrer external" class="text-[--color-wiki-link] text-xs mt-2 inline-block">Ver en X</a>
+  <a href="${escapeHtml(tweet.sourceUrl)}" target="_blank" rel="noreferrer external" class="text-(--color-wiki-link) text-xs mt-2 inline-block">Ver en X</a>
 </blockquote>`;
 }
 
@@ -85,10 +85,10 @@ export function buildBookmarkCardHtml(bookmark: {
       ? `<img src="data:${escapeHtml(bookmark.imageMimeType)};base64,${bookmark.imageData.toString("base64")}" alt="" class="w-full rounded mt-2" />`
       : "";
   const descriptionHtml = bookmark.description
-    ? `<p class="mt-1 text-[--color-wiki-muted] text-sm">${escapeHtml(bookmark.description)}</p>`
+    ? `<p class="mt-1 text-(--color-wiki-muted) text-sm">${escapeHtml(bookmark.description)}</p>`
     : "";
-  return `<a href="${escapeHtml(bookmark.url)}" target="_blank" rel="noreferrer external" class="bookmark-embed block border border-[--color-wiki-border] rounded p-3 my-3 max-w-md no-underline">
-  <p class="font-semibold text-[--color-wiki-link]">${faviconHtml}${escapeHtml(bookmark.title)}</p>
+  return `<a href="${escapeHtml(bookmark.url)}" target="_blank" rel="noreferrer external" class="bookmark-embed block border border-(--color-wiki-border) rounded p-3 my-3 max-w-md no-underline">
+  <p class="font-semibold text-(--color-wiki-link)">${faviconHtml}${escapeHtml(bookmark.title)}</p>
   ${descriptionHtml}
   ${imageHtml}
 </a>`;

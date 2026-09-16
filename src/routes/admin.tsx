@@ -38,20 +38,20 @@ function AdminIndexPage() {
         <Link
           to="/admin/new"
           search={{ slug: "" }}
-          className="text-[--color-wiki-link] hover:underline"
+          className="text-(--color-wiki-link) hover:underline"
         >
           Nuevo artículo
         </Link>
         <a
           href="/admin/logout"
-          className="text-[--color-wiki-link] hover:underline"
+          className="text-(--color-wiki-link) hover:underline"
         >
           Cerrar sesión
         </a>
       </p>
-      <table className="w-full text-sm border border-[--color-wiki-border]">
+      <table className="w-full text-sm border border-(--color-wiki-border)">
         <thead>
-          <tr className="bg-[--color-wiki-sidebar] text-left">
+          <tr className="bg-(--color-wiki-sidebar) text-left">
             <th className="p-2">Slug</th>
             <th className="p-2">Título</th>
             <th className="p-2">Actualizado</th>
@@ -60,12 +60,12 @@ function AdminIndexPage() {
         </thead>
         <tbody>
           {articles.map((a: (typeof articles)[number]) => (
-            <tr key={a.slug} className="border-t border-[--color-wiki-border]">
+            <tr key={a.slug} className="border-t border-(--color-wiki-border)">
               <td className="p-2 font-mono">
                 <Link
                   to="/admin/edit/$slug"
                   params={{ slug: a.slug }}
-                  className="text-[--color-wiki-link] hover:underline"
+                  className="text-(--color-wiki-link) hover:underline"
                 >
                   {a.slug}
                 </Link>
