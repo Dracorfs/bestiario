@@ -112,11 +112,11 @@ Recommendations (to be validated at Checkpoint A/D):
 - [ ] Long report reads well on desktop and 375px mobile
 
 ### Phase 5: Connections (optional)
-- [ ] Task 18: `ArticleRelation` model + admin linking
-- [ ] Task 19: "Relacionados" block
+- [x] Task 18: `ArticleRelation` model + admin linking
+- [x] Task 19: "Relacionados" block
 
 ### Checkpoint E
-- [ ] Victim page links to responsible people/orgs and back
+- [x] Victim page links to responsible people/orgs and back
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |

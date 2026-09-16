@@ -30,8 +30,25 @@ model Article {
   categories ArticleCategory[]
   revisions  Revision[]
 
+  relationsFrom ArticleRelation[] @relation("RelationFrom")
+  relationsTo   ArticleRelation[] @relation("RelationTo")
+
   @@index([title])
   @@index([kind])
+}
+
+/// A directed link between two entries, e.g. A "responsable de" B.
+model ArticleRelation {
+  id     String @id @default(cuid())
+  fromId String
+  toId   String
+  label  String
+
+  from Article @relation("RelationFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   Article @relation("RelationTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId, label])
+  @@index([toId])
 }
 
 model Revision {

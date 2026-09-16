@@ -6,6 +6,8 @@ import { parseKeyFacts } from "~/lib/key-facts";
 import { extractHeadings } from "~/lib/headings";
 import { ArticleHeader } from "~/components/ArticleHeader";
 import { TableOfContents } from "~/components/TableOfContents";
+import { RelatedEntries, type RelatedGroup } from "~/components/RelatedEntries";
+import { incomingHeading, isRelationLabel, outgoingHeading } from "~/lib/relations";
 
 /** Below this, a table of contents is more clutter than help. */
 const MIN_HEADINGS_FOR_TOC = 3;
@@ -29,13 +31,45 @@ const getArticle = createServerFn({ method: "GET" })
         pictureMimeType: true,
         updatedAt: true,
         categories: { select: { category: { select: { slug: true, name: true } } } },
+        relationsFrom: {
+          select: {
+            label: true,
+            to: { select: { slug: true, title: true, kind: true } },
+          },
+        },
+        relationsTo: {
+          select: {
+            label: true,
+            from: { select: { slug: true, title: true, kind: true } },
+          },
+        },
       },
     });
     if (!article) return null;
+    // Both directions are shown, each under its own phrasing: an entry this one
+    // points at is listed under "Responsable de", while one pointing back is
+    // listed under "Responsables".
+    const groups = new Map<string, RelatedGroup["entries"]>();
+    for (const rel of article.relationsFrom) {
+      if (!isRelationLabel(rel.label)) continue;
+      const heading = outgoingHeading(rel.label);
+      groups.set(heading, [...(groups.get(heading) ?? []), rel.to]);
+    }
+    for (const rel of article.relationsTo) {
+      if (!isRelationLabel(rel.label)) continue;
+      const heading = incomingHeading(rel.label);
+      groups.set(heading, [...(groups.get(heading) ?? []), rel.from]);
+    }
+    const relatedGroups: RelatedGroup[] = [...groups].map(([heading, entries]) => ({
+      heading,
+      entries,
+    }));
+
     const rendered = await renderArticleContent(article.contentHtml);
     const { html, headings } = extractHeadings(rendered);
     return {
       headings,
+      relatedGroups,
       slug: article.slug,
       title: article.title,
       kind: article.kind,
@@ -88,6 +122,7 @@ function ArticlePage() {
           dangerouslySetInnerHTML={{ __html: article.html }}
         />
       )}
+      <RelatedEntries groups={article.relatedGroups} />
     </>
   );
 }

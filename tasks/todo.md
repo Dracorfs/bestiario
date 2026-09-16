@@ -273,8 +273,13 @@ in the TOC. Entities are now decoded.
 ## Task 18: `ArticleRelation` model + admin linking
 **Description:** `ArticleRelation { fromId, toId, label }` ("miembro de", "responsable de", "víctima de"); admin picker to add/remove links.
 **Acceptance criteria:**
-- [ ] Admin can add/remove relations; deleting an entry cascades
-**Verification:** db:push, typecheck, manual
+- [x] Relations editor on the edit page: pick a label and a target, remove with one click.
+      It lives there rather than in `ArticleForm` because a relation needs an article id,
+      which a new entry does not have yet.
+- [x] Deleting an entry cascades — verified at runtime with throwaway fixtures, then removed
+- [x] Self-links and unknown labels are rejected server-side; `@@unique([fromId, toId, label])`
+      stops duplicates
+**Verification:** db:push, typecheck. The editor UI itself is unexercised — admin login.
 **Dependencies:** Checkpoint D
 **Files likely touched:** `prisma/schema.prisma`, `src/lib/article-form.tsx`, `src/routes/admin_.edit.$slug.tsx`
 **Estimated scope:** Medium
@@ -282,11 +287,16 @@ in the TOC. Entities are now decoded.
 ## Task 19: "Relacionados" block
 **Description:** Article page lists related entries in both directions, grouped by type with badges.
 **Acceptance criteria:**
-- [ ] A victim page lists linked people/orgs, and those pages link back
-**Verification:** build; manual
+- [x] Verified in the browser with a temporary relation, since the admin UI needs a login:
+      Nisman showed "Víctima de → Luis D'Elia" and D'Elia showed "Víctimas → Alberto Nisman".
+      The row was deleted afterwards; the table is back to 0.
+**Verification:** build; manual both directions
 **Dependencies:** Task 18
 **Files likely touched:** `src/routes/article.$slug.tsx`, `src/components/RelatedEntries.tsx`
 **Estimated scope:** Small
 
 ## Checkpoint E
-- [ ] All acceptance criteria met; ready for review
+- [x] All 19 tasks implemented; typecheck, 337 tests and build all clean
+- [ ] Review with Francisco
+- Everything gated on the admin login is still unexercised: setting types, tagging categories,
+  the key-facts editor and the relations editor. The read side of each is verified.

@@ -12,6 +12,8 @@ import { optimizeImage } from "~/lib/tweet-media";
 import { setArticleCategories } from "~/lib/category-sync";
 import { parseKeyFacts } from "~/lib/key-facts";
 import { Prisma } from "@prisma/client";
+import { RELATION_LABELS, isRelationLabel, outgoingHeading } from "~/lib/relations";
+import { KindBadge } from "~/components/KindBadge";
 
 const loadArticle = createServerFn({ method: "GET" })
   .middleware([adminOnly])
@@ -135,6 +137,56 @@ const listCategories = createServerFn({ method: "GET" })
     }),
   );
 
+const loadRelations = createServerFn({ method: "GET" })
+  .middleware([adminOnly])
+  .inputValidator((slug: string) => slug)
+  .handler(async ({ data: slug }) => {
+    const article = await prisma.article.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        relationsFrom: {
+          select: {
+            id: true,
+            label: true,
+            to: { select: { slug: true, title: true, kind: true } },
+          },
+        },
+      },
+    });
+    const targets = await prisma.article.findMany({
+      where: article ? { NOT: { id: article.id } } : {},
+      select: { slug: true, title: true },
+      orderBy: { title: "asc" },
+    });
+    return { relations: article?.relationsFrom ?? [], targets };
+  });
+
+const addRelation = createServerFn({ method: "POST" })
+  .middleware([adminOnly])
+  .inputValidator((input: { fromSlug: string; toSlug: string; label: string }) => input)
+  .handler(async ({ data }) => {
+    if (!isRelationLabel(data.label)) throw new Error("etiqueta desconocida");
+    const [from, to] = await Promise.all([
+      prisma.article.findUnique({ where: { slug: data.fromSlug }, select: { id: true } }),
+      prisma.article.findUnique({ where: { slug: data.toSlug }, select: { id: true } }),
+    ]);
+    // A self-link would render as an entry related to itself on both sides.
+    if (!from || !to || from.id === to.id) throw new Error("relación inválida");
+    await prisma.articleRelation.create({
+      data: { fromId: from.id, toId: to.id, label: data.label },
+    });
+    return { ok: true };
+  });
+
+const removeRelation = createServerFn({ method: "POST" })
+  .middleware([adminOnly])
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    await prisma.articleRelation.delete({ where: { id } });
+    return { ok: true };
+  });
+
 const deleteArticle = createServerFn({ method: "POST" })
   .middleware([adminOnly])
   .inputValidator((slug: string) => slug)
@@ -149,18 +201,20 @@ export const Route = createFileRoute("/admin_/edit/$slug")({
   }),
   loader: async ({ params, context }) => {
     if (context.auth.status !== "ok") return null;
-    const [article, availableCategories] = await Promise.all([
+    const [article, availableCategories, relationData] = await Promise.all([
       loadArticle({ data: params.slug }),
       listCategories(),
+      loadRelations({ data: params.slug }),
     ]);
-    return { article, availableCategories };
+    return { article, availableCategories, ...relationData };
   },
   component: AdminEditPage,
 });
 
 function AdminEditPage() {
   const { auth } = Route.useRouteContext();
-  const { article: initial, availableCategories } = Route.useLoaderData()!;
+  const { article: initial, availableCategories, relations, targets } =
+    Route.useLoaderData()!;
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -190,6 +244,11 @@ function AdminEditPage() {
           router.navigate({ to: "/article/$slug", params: { slug: values.slug } });
         }}
       />
+      <RelationsEditor
+        fromSlug={initial.slug}
+        relations={relations}
+        targets={targets}
+      />
       <div className="mt-6 pt-3 border-t border-(--color-border)">
         <button
           type="button"
@@ -213,5 +272,115 @@ function AdminEditPage() {
         {deleteError && <p className="text-red-600 text-sm mt-2">{deleteError}</p>}
       </div>
     </>
+  );
+}
+
+function RelationsEditor({
+  fromSlug,
+  relations,
+  targets,
+}: {
+  fromSlug: string;
+  relations: Array<{
+    id: string;
+    label: string;
+    to: { slug: string; title: string; kind: ArticleKind };
+  }>;
+  targets: Array<{ slug: string; title: string }>;
+}) {
+  const router = useRouter();
+  const [label, setLabel] = useState<string>(RELATION_LABELS[0]);
+  const [toSlug, setToSlug] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(action: () => Promise<unknown>, message: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+      await router.invalidate();
+    } catch {
+      setError(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="mt-6 pt-3 border-t border-(--color-border)">
+      <h2>Relaciones</h2>
+      {relations.length === 0 ? (
+        <p className="text-sm text-(--color-muted)">
+          Esta entrada todavía no está relacionada con ninguna otra.
+        </p>
+      ) : (
+        <ul className="space-y-1">
+          {relations.map((r) => (
+            <li key={r.id} className="list-none flex items-center gap-2 text-sm">
+              <span className="text-(--color-muted)">
+                {outgoingHeading(r.label as (typeof RELATION_LABELS)[number])}:
+              </span>
+              <KindBadge kind={r.to.kind} />
+              <span>{r.to.title}</span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () => removeRelation({ data: r.id }),
+                    "No se pudo quitar la relación.",
+                  )
+                }
+                aria-label={`Quitar relación con ${r.to.title}`}
+                className="border border-(--color-link-red) text-(--color-link-red) px-2 disabled:opacity-50"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2 items-center">
+        <select
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          className="border border-(--color-border) p-1 bg-(--color-surface) text-sm"
+        >
+          {RELATION_LABELS.map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <select
+          value={toSlug}
+          onChange={(e) => setToSlug(e.target.value)}
+          className="border border-(--color-border) p-1 bg-(--color-surface) text-sm"
+        >
+          <option value="">Elegí una entrada…</option>
+          {targets.map((t) => (
+            <option key={t.slug} value={t.slug}>
+              {t.title}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          disabled={busy || !toSlug}
+          onClick={() =>
+            run(async () => {
+              await addRelation({ data: { fromSlug, toSlug, label } });
+              setToSlug("");
+            }, "No se pudo agregar la relación. Puede que ya exista.")
+          }
+          className="border border-(--color-border) px-3 py-1 text-sm bg-(--color-surface-alt) hover:bg-(--color-surface) disabled:opacity-50"
+        >
+          Agregar relación
+        </button>
+      </div>
+      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+    </section>
   );
 }
