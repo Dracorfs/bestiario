@@ -1,14 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
+import { KindBadge } from "~/components/KindBadge";
+import {
+  ARTICLE_KINDS,
+  kindFromQueryValue,
+  kindLabel,
+  kindQueryValue,
+} from "~/lib/kind";
 
 const search = createServerFn({ method: "GET" })
-  .inputValidator((q: string) => q)
-  .handler(async ({ data: q }) => {
+  .inputValidator((input: { q: string; tipo: string }) => input)
+  .handler(async ({ data: { q, tipo } }) => {
     if (!q.trim()) return [];
+    const kind = kindFromQueryValue(tipo);
     return prisma.article.findMany({
       where: {
         published: true,
+        ...(kind ? { kind } : {}),
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { summary: { contains: q, mode: "insensitive" } },
@@ -16,22 +25,26 @@ const search = createServerFn({ method: "GET" })
         ],
       },
       take: 50,
-      select: { slug: true, title: true, summary: true },
+      select: { slug: true, title: true, kind: true, summary: true },
     });
   });
 
 export const Route = createFileRoute("/search")({
   validateSearch: (s: Record<string, unknown>) => ({
     q: typeof s.q === "string" ? s.q : "",
+    // Normalised here so an unknown ?tipo= drops out of the URL instead of
+    // silently returning zero results.
+    tipo:
+      typeof s.tipo === "string" && kindFromQueryValue(s.tipo) ? s.tipo : "",
   }),
-  loaderDeps: ({ search: { q } }) => ({ q }),
-  loader: ({ deps: { q } }) => search({ data: q }),
+  loaderDeps: ({ search: { q, tipo } }) => ({ q, tipo }),
+  loader: ({ deps: { q, tipo } }) => search({ data: { q, tipo } }),
   component: SearchPage,
 });
 
 function SearchPage() {
   const results = Route.useLoaderData();
-  const { q } = Route.useSearch();
+  const { q, tipo } = Route.useSearch();
   return (
     <>
       <h1>Buscar</h1>
@@ -43,6 +56,18 @@ function SearchPage() {
           className="border border-(--color-wiki-border) px-2 py-1 text-sm flex-1 bg-white"
           placeholder="Escribí tu búsqueda…"
         />
+        <select
+          name="tipo"
+          defaultValue={tipo}
+          className="border border-(--color-wiki-border) px-2 py-1 text-sm bg-white"
+        >
+          <option value="">Todos los tipos</option>
+          {ARTICLE_KINDS.map((k) => (
+            <option key={k} value={kindQueryValue(k)}>
+              {kindLabel(k)}
+            </option>
+          ))}
+        </select>
         <button
           type="submit"
           className="border border-(--color-wiki-border) px-3 py-1 text-sm bg-white hover:bg-(--color-wiki-sidebar)"
@@ -59,6 +84,7 @@ function SearchPage() {
       <ul>
         {results.map((r: (typeof results)[number]) => (
           <li key={r.slug}>
+            <KindBadge kind={r.kind} />{" "}
             <Link
               to="/article/$slug"
               params={{ slug: r.slug }}

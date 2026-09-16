@@ -7,23 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ArticleKind {
+  PERSONA
+  ORGANIZACION
+  VICTIMA
+}
+
 model Article {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  title       String
-  summary     String?
-  contentHtml String   @db.Text
-  infoboxJson Json?
-  published   Boolean  @default(true)
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  title           String
+  kind            ArticleKind @default(PERSONA)
+  summary         String?
+  contentHtml     String      @db.Text
+  infoboxJson     Json?
+  published       Boolean     @default(true)
   pictureData     Bytes?
   pictureMimeType String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   categories ArticleCategory[]
   revisions  Revision[]
 
   @@index([title])
+  @@index([kind])
 }
 
 model Revision {

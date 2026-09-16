@@ -3,6 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { bufferToDataUrl } from "~/lib/data-url";
 import { prisma } from "~/lib/db";
 import { renderArticleContent } from "~/lib/render-article";
+import { kindAccentClass } from "~/lib/kind";
+import { KindBadge } from "~/components/KindBadge";
 
 const getArticle = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
@@ -42,7 +44,10 @@ function ArticlePage() {
   const article = Route.useLoaderData();
   return (
     <>
-      <h1>{article.title}</h1>
+      <div className={`border-t-2 pt-3 mb-2 ${kindAccentClass(article.kind)}`}>
+        <KindBadge kind={article.kind} />
+        <h1 className="mt-1">{article.title}</h1>
+      </div>
       {article.summary && (
         <p className="text-(--color-wiki-muted) italic">{article.summary}</p>
       )}

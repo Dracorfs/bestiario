@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { prisma } from "~/lib/db";
 import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
+import { ARTICLE_KINDS, kindLabel, type ArticleKind } from "~/lib/kind";
 
 const listArticles = createServerFn({ method: "GET" })
   .middleware([adminOnly])
   .handler(async () => {
     return prisma.article.findMany({
-      select: { slug: true, title: true, updatedAt: true, published: true },
+      select: { slug: true, title: true, kind: true, updatedAt: true, published: true },
       orderBy: { updatedAt: "desc" },
     });
   });
@@ -29,7 +31,12 @@ export const Route = createFileRoute("/admin")({
 function AdminIndexPage() {
   const { auth } = Route.useRouteContext();
   const articles = Route.useLoaderData();
+  const [kindFilter, setKindFilter] = useState<ArticleKind | "">("");
   if (auth.status === "unauthorized") return <NotAuthorized email={auth.email} />;
+
+  const visible = kindFilter
+    ? articles.filter((a: (typeof articles)[number]) => a.kind === kindFilter)
+    : articles;
 
   return (
     <>
@@ -49,17 +56,34 @@ function AdminIndexPage() {
           Cerrar sesión
         </a>
       </p>
+      <label className="block mb-3 text-sm">
+        <span className="font-semibold">Filtrar por tipo: </span>
+        <select
+          value={kindFilter}
+          onChange={(e) => setKindFilter(e.target.value as ArticleKind | "")}
+          className="border border-(--color-wiki-border) p-1 bg-white"
+        >
+          <option value="">Todos ({articles.length})</option>
+          {ARTICLE_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {kindLabel(k)} (
+              {articles.filter((a: (typeof articles)[number]) => a.kind === k).length})
+            </option>
+          ))}
+        </select>
+      </label>
       <table className="w-full text-sm border border-(--color-wiki-border)">
         <thead>
           <tr className="bg-(--color-wiki-sidebar) text-left">
             <th className="p-2">Slug</th>
             <th className="p-2">Título</th>
+            <th className="p-2">Tipo</th>
             <th className="p-2">Actualizado</th>
             <th className="p-2">Publicado</th>
           </tr>
         </thead>
         <tbody>
-          {articles.map((a: (typeof articles)[number]) => (
+          {visible.map((a: (typeof articles)[number]) => (
             <tr key={a.slug} className="border-t border-(--color-wiki-border)">
               <td className="p-2 font-mono">
                 <Link
@@ -71,6 +95,7 @@ function AdminIndexPage() {
                 </Link>
               </td>
               <td className="p-2">{a.title}</td>
+              <td className="p-2">{kindLabel(a.kind)}</td>
               <td className="p-2">
                 {new Date(a.updatedAt).toLocaleDateString("es-AR")}
               </td>

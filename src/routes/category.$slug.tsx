@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
+import { KindBadge } from "~/components/KindBadge";
 
 const getCategory = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
@@ -11,7 +12,7 @@ const getCategory = createServerFn({ method: "GET" })
         articles: {
           include: {
             article: {
-              select: { slug: true, title: true, summary: true },
+              select: { slug: true, title: true, kind: true, summary: true },
             },
           },
           orderBy: { article: { title: "asc" } },
@@ -43,6 +44,7 @@ function CategoryPage() {
           const article = entry.article;
           return (
           <li key={article.slug}>
+            <KindBadge kind={article.kind} />{" "}
             <Link
               to="/article/$slug"
               params={{ slug: article.slug }}

@@ -24,6 +24,7 @@ const createArticle = createServerFn({ method: "POST" })
       data: {
         slug: data.slug,
         title: data.title,
+        kind: data.kind,
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
@@ -59,6 +60,7 @@ function AdminNewPage() {
         initial={{
           slug,
           title: "",
+          kind: "PERSONA",
           summary: "",
           contentHtml: "",
           published: true,

@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
+import { ARTICLE_KINDS, kindLabel, type ArticleKind } from "~/lib/kind";
 
 export interface ArticleFormValues {
   slug: string;
   title: string;
+  kind: ArticleKind;
   summary: string;
   contentHtml: string;
   published: boolean;
@@ -32,6 +34,7 @@ export function ArticleForm({
   const [slug, setSlug] = useState(initial.slug);
   const [slugTouched, setSlugTouched] = useState(!slugEditable || initial.slug !== "");
   const [title, setTitle] = useState(initial.title);
+  const [kind, setKind] = useState<ArticleKind>(initial.kind);
   const [summary, setSummary] = useState(initial.summary);
   const [contentHtml, setContentHtml] = useState(initial.contentHtml);
   const [published, setPublished] = useState(initial.published);
@@ -48,7 +51,7 @@ export function ArticleForm({
         setSaving(true);
         setError(null);
         try {
-          await onSubmit({ slug, title, summary, contentHtml, published, pictureBase64 });
+          await onSubmit({ slug, title, kind, summary, contentHtml, published, pictureBase64 });
         } catch {
           setError(
             "No se pudo guardar el artículo. Puede que el slug ya exista o haya un problema de conexión. Intentá de nuevo.",
@@ -85,6 +88,31 @@ export function ArticleForm({
           className="block w-full border border-(--color-wiki-border) p-1 bg-white"
         />
       </label>
+      <fieldset className="block">
+        <legend className="text-sm font-semibold">Tipo</legend>
+        <div className="mt-1 inline-flex border border-(--color-wiki-border)">
+          {ARTICLE_KINDS.map((k) => (
+            <label
+              key={k}
+              className={`px-3 py-1 text-sm cursor-pointer border-r border-(--color-wiki-border) last:border-r-0 ${
+                kind === k
+                  ? "bg-(--color-wiki-sidebar) font-semibold"
+                  : "bg-white hover:bg-(--color-wiki-sidebar)"
+              }`}
+            >
+              <input
+                type="radio"
+                name="kind"
+                value={k}
+                checked={kind === k}
+                onChange={() => setKind(k)}
+                className="sr-only"
+              />
+              {kindLabel(k)}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <label className="block">
         <span className="text-sm font-semibold">Resumen</span>
         <input

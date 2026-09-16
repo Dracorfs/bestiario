@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "~/lib/db";
+import { KindBadge } from "~/components/KindBadge";
 
 const getFeatured = createServerFn({ method: "GET" }).handler(async () => {
   const articles = await prisma.article.findMany({
     where: { published: true },
     orderBy: { updatedAt: "desc" },
     take: 12,
-    select: { slug: true, title: true, summary: true, updatedAt: true },
+    select: { slug: true, title: true, kind: true, summary: true, updatedAt: true },
   });
   const total = await prisma.article.count({ where: { published: true } });
   return { articles, total };
@@ -33,6 +34,7 @@ function HomePage() {
         <ul>
           {articles.map((a: (typeof articles)[number]) => (
             <li key={a.slug}>
+              <KindBadge kind={a.kind} />{" "}
               <Link
                 to="/article/$slug"
                 params={{ slug: a.slug }}

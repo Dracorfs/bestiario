@@ -4,6 +4,7 @@ import { useState } from "react";
 import { prisma } from "~/lib/db";
 import { adminOnly, NotAuthorized, requireAdmin } from "~/lib/admin-auth";
 import { ArticleForm, type ArticleFormValues } from "~/lib/article-form";
+import type { ArticleKind } from "~/lib/kind";
 import { bufferToDataUrl, dataUrlToBuffer } from "~/lib/data-url";
 import { archiveTweetsInContent } from "~/lib/tweet-archive";
 import { archiveBookmarksInContent } from "~/lib/bookmark-archive";
@@ -18,6 +19,7 @@ const loadArticle = createServerFn({ method: "GET" })
       select: {
         slug: true,
         title: true,
+        kind: true,
         summary: true,
         contentHtml: true,
         published: true,
@@ -29,6 +31,7 @@ const loadArticle = createServerFn({ method: "GET" })
       return {
         slug,
         title: "",
+        kind: "PERSONA" as ArticleKind,
         summary: "",
         contentHtml: "",
         published: true,
@@ -38,6 +41,7 @@ const loadArticle = createServerFn({ method: "GET" })
     return {
       slug: a.slug,
       title: a.title,
+      kind: a.kind,
       summary: a.summary,
       contentHtml: a.contentHtml,
       published: a.published,
@@ -77,6 +81,7 @@ const saveArticle = createServerFn({ method: "POST" })
       create: {
         slug: data.slug,
         title: data.title,
+        kind: data.kind,
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
@@ -85,6 +90,7 @@ const saveArticle = createServerFn({ method: "POST" })
       },
       update: {
         title: data.title,
+        kind: data.kind,
         summary: data.summary,
         contentHtml: data.contentHtml,
         published: data.published,
@@ -132,6 +138,7 @@ function AdminEditPage() {
         initial={{
           slug: initial.slug,
           title: initial.title,
+          kind: initial.kind,
           summary: initial.summary ?? "",
           contentHtml: initial.contentHtml,
           published: initial.published,

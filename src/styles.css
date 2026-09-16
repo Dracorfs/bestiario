@@ -12,6 +12,15 @@
   --color-wiki-text: #202122;
   --color-wiki-muted: #54595d;
   --color-bestiario-accent: #75aadb;
+
+  /* Entry-type colours: muted tinted pills, never loud. Víctima is a calm
+     slate blue — victim pages carry no accusatory red. */
+  --color-kind-persona-fg: #9b2c2c;
+  --color-kind-persona-bg: #fbeaea;
+  --color-kind-organizacion-fg: #8a5a00;
+  --color-kind-organizacion-bg: #fbf1dc;
+  --color-kind-victima-fg: #3b5b7a;
+  --color-kind-victima-bg: #e8eff6;
 }
 
 html, body {

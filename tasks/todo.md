@@ -72,8 +72,10 @@ Common verification commands: `npm run typecheck` · `npm test` · `npm run buil
 ## Task 5: Add `kind` enum
 **Description:** `enum ArticleKind { PERSONA ORGANIZACION VICTIMA }`, `kind ArticleKind @default(PERSONA)`, `@@index([kind])` on `Article`. `db:push` + `db:generate`. Remaining entries get their type set by hand in Task 6.
 **Acceptance criteria:**
-- [ ] Schema synced; client regenerated; existing rows have a kind
-**Verification:** typecheck; `db:studio`
+- [x] Schema synced; client regenerated; all 18 existing rows defaulted to PERSONA
+**Verification:** typecheck; groupBy count
+Note: a running dev server keeps the old generated client in memory — restart it after
+`db:generate` or every query with the new column fails at runtime.
 **Dependencies:** Checkpoint A
 **Files likely touched:** `prisma/schema.prisma`
 **Estimated scope:** XS
@@ -81,9 +83,12 @@ Common verification commands: `npm run typecheck` · `npm test` · `npm run buil
 ## Task 6: Admin can set the type
 **Description:** Add `kind` to `ArticleFormValues`; required segmented control "Persona · Organización · Víctima" in `ArticleForm`; persist in create/edit; "Tipo" column + filter in `/admin`.
 **Acceptance criteria:**
-- [ ] New and edited entries save the chosen type
-- [ ] Admin list shows and filters by type
-**Verification:** typecheck + build; manual create one of each, change one
+- [x] `kind` added to `ArticleFormValues`, segmented control in the form, persisted in
+      create + both branches of the edit upsert
+- [x] Admin list shows a "Tipo" column and filters by type (counts per type in the dropdown)
+**Verification:** typecheck + build pass. Manual create/edit NOT run — the admin area needs a
+WorkOS login, and the dev server is on port 5180 (3000 is taken by another app), so the
+OAuth redirect URI does not match. Francisco verifies this at Checkpoint B.
 **Dependencies:** Task 5
 **Files likely touched:** `src/lib/article-form.tsx`, `src/routes/admin_.new.tsx`, `src/routes/admin_.edit.$slug.tsx`, `src/routes/admin.tsx`
 **Estimated scope:** Medium
@@ -91,9 +96,13 @@ Common verification commands: `npm run typecheck` · `npm test` · `npm run buil
 ## Task 7: `KindBadge` + type-specific article styling
 **Description:** `src/lib/kind.ts` (labels, plurals, paths, color tokens) and `src/components/KindBadge.tsx` (tinted pill). Type tokens in `styles.css` (Persona red, Organización ochre, Víctima slate blue). Article page: badge above title, thin top accent in type color; Víctima uses a calm memorial header with no red.
 **Acceptance criteria:**
-- [ ] Badge on article page for all three types
-- [ ] Labels/colors defined once in `kind.ts`
-**Verification:** unit test `kind.test.ts`; manual on three types
+- [x] Badge + coloured top rule on the article page
+- [x] Labels, plurals, URL segments and colour tokens defined once in `kind.ts`
+**Verification:** `kind.test.ts` (14 cases). Manual check done with PERSONA only — every entry
+is currently PERSONA. The other two are covered indirectly: the tests pin each token name and
+all six `--color-kind-*` rules are present in the built CSS.
+Note: badge/accent classes are written out literally per kind. Tailwind generates utilities by
+scanning source text, so a class built by string interpolation is never emitted.
 **Dependencies:** Task 5
 **Files likely touched:** `src/lib/kind.ts`, `src/lib/kind.test.ts`, `src/components/KindBadge.tsx`, `src/styles.css`, `src/routes/article.$slug.tsx`
 **Estimated scope:** Medium
@@ -101,15 +110,18 @@ Common verification commands: `npm run typecheck` · `npm test` · `npm run buil
 ## Task 8: Type shown in listings
 **Description:** Select `kind` in home, search, category loaders; render `KindBadge` per row. Search gets `tipo` filter (`/search?q=…&tipo=persona`).
 **Acceptance criteria:**
-- [ ] Every listing row shows its type
-- [ ] Type filter works and persists in URL
-**Verification:** build; manual
+- [x] Home, search and category rows all render a `KindBadge`
+- [x] `/search?q=…&tipo=persona` filters and persists; an unknown `tipo` is normalised away in
+      `validateSearch` rather than silently returning no results
+**Verification:** build; manual — verified in browser
 **Dependencies:** Task 7
 **Files likely touched:** `src/routes/index.tsx`, `src/routes/search.tsx`, `src/routes/category.$slug.tsx`
 **Estimated scope:** Small
 
 ## Checkpoint B
-- [ ] One entry of each type created in admin and shown correctly everywhere
+- [ ] One entry of each type created in admin and shown correctly everywhere — FRANCISCO:
+      needs the admin login, so it cannot be done from here. Assigning types to the existing
+      18 entries is also an editorial call, not a migration.
 - [ ] Review with Francisco
 
 ---

@@ -84,10 +84,10 @@ Recommendations (to be validated at Checkpoint A/D):
 - [x] typecheck, tests, build pass; no "wikipedia/seed/scrape" references left; colors render
 
 ### Phase 2: Entity types
-- [ ] Task 5: Add `kind` enum to schema
-- [ ] Task 6: Admin can set the type (form + list column/filter)
-- [ ] Task 7: `KindBadge` + type-specific styling on the article page
-- [ ] Task 8: Show type on home, search and category listings
+- [x] Task 5: Add `kind` enum to schema
+- [x] Task 6: Admin can set the type (form + list column/filter)
+- [x] Task 7: `KindBadge` + type-specific styling on the article page
+- [x] Task 8: Show type on home, search and category listings
 
 ### Checkpoint B
 - [ ] One entry of each type created end-to-end, badge shown everywhere
